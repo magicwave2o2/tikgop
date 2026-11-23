@@ -4,13 +4,16 @@ import {
   AlertCircle,
   Calendar,
   Check,
+  Cloud,
   Edit3,
   Layers,
+  Loader2,
   Mic,
   MicOff,
   Sparkles,
   Trash2,
   X,
+  Zap,
 } from 'lucide-react';
 import { useFinance } from '../store/useFinanceStore';
 import type { TransactionDraft } from '../types/finance';
@@ -19,6 +22,7 @@ import {
   VOICE_SAMPLE_PHRASES,
   type VoiceParseResult,
   parseVietnameseVoiceBatch,
+  parseVoiceWithAI,
 } from '../utils/voiceParser';
 import { CategoryIconBadge, DynamicIcon } from './IconRenderer';
 
@@ -49,6 +53,8 @@ interface BrowserSpeechRecognition {
   abort: () => void;
 }
 
+const AUTOSAVE_PREF_KEY = 'tikgop_voice_autosave';
+
 function getSpeechRecognitionCtor(): (new () => BrowserSpeechRecognition) | null {
   if (typeof window === 'undefined') return null;
   const w = window as unknown as {
@@ -63,20 +69,51 @@ function detectInAppWebView(): boolean {
   return /Zalo|FBAN|FBAV|Instagram|Line|Messenger/i.test(navigator.userAgent);
 }
 
+function getSavedAutoSavePref(): boolean {
+  try {
+    const raw = localStorage.getItem(AUTOSAVE_PREF_KEY);
+    return raw === null ? true : raw === '1';
+  } catch {
+    return true;
+  }
+}
+
 export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
   open,
   onClose,
   onEditDraft,
 }) => {
   const { state, activeMember, addTransactionsBatch } = useFinance();
+
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [fromSpeechEnd, setFromSpeechEnd] = useState(false);
+
+  // Smart hybrid items: instant local parse + automatic Cloudflare AI refinement
+  const [aiItems, setAiItems] = useState<VoiceParseResult[] | null>(null);
+  const [isRefiningAI, setIsRefiningAI] = useState(false);
+  const [overrides, setOverrides] = useState<
+    Record<string, { categoryId?: string; memberId?: string }>
+  >({});
   const [excludedIds, setExcludedIds] = useState<string[]>([]);
+  const [editingCatItemId, setEditingCatItemId] = useState<string | null>(null);
+
+  // Hands-free Auto-Save mode (runs 2.5s countdown right after speech ends + AI finishes)
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(getSavedAutoSavePref);
+  const [autoSaveCountdown, setAutoSaveCountdown] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const aiAbortRef = useRef<AbortController | null>(null);
+  const hadSpeechResultRef = useRef(false);
+
   const isSpeechSupported = useMemo(() => Boolean(getSpeechRecognitionCtor()), []);
   const isInAppBrowser = useMemo(() => detectInAppWebView(), []);
+
+  const cancelAutoSave = useCallback(() => {
+    setAutoSaveCountdown(null);
+    setFromSpeechEnd(false);
+  }, []);
 
   const stopListening = useCallback(() => {
     try {
@@ -87,76 +124,106 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
     setIsListening(false);
   }, []);
 
-  const startListening = useCallback((silentFail = false) => {
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) {
-      if (!silentFail) {
-        setError(
-          isInAppBrowser
-            ? 'Trình duyệt trong Zalo/Facebook hạn chế Micro. Hãy mở bằng Chrome/Safari hoặc gõ/chọn câu mẫu bên dưới!'
-            : 'Trình duyệt hiện tại không hỗ trợ Web Speech API. Bạn vẫn có thể gõ hoặc chạm câu mẫu tiếng Việt bên dưới!',
-        );
+  const toggleAutoSavePref = () => {
+    setAutoSaveEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(AUTOSAVE_PREF_KEY, next ? '1' : '0');
+      } catch {
+        // ignore storage error
       }
-      return;
-    }
+      if (!next) setAutoSaveCountdown(null);
+      return next;
+    });
+  };
 
-    setError('');
-    try {
-      const rec = new Ctor();
-      rec.lang = 'vi-VN';
-      rec.continuous = false;
-      rec.interimResults = true;
-
-      rec.onstart = () => {
-        setIsListening(true);
-        setError('');
-      };
-
-      rec.onresult = (event) => {
-        let combined = '';
-        for (let i = 0; i < event.results.length; i++) {
-          combined += event.results[i][0].transcript;
-        }
-        setTranscript(combined.trim());
-        setExcludedIds([]);
-      };
-
-      rec.onerror = (event) => {
-        setIsListening(false);
-        if (silentFail) return;
-        if (event.error === 'not-allowed') {
+  const startListening = useCallback(
+    (silentFail = false) => {
+      const Ctor = getSpeechRecognitionCtor();
+      if (!Ctor) {
+        if (!silentFail) {
           setError(
-            'Bạn chưa cấp quyền Micro. Vui lòng bật quyền Micro cho trang này hoặc nhập câu tự nhiên bên dưới.',
-          );
-        } else if (event.error === 'no-speech') {
-          setError('Không nghe thấy giọng nói. Hãy bấm Micro và thử nói lại rõ hơn.');
-        } else if (event.error !== 'aborted') {
-          setError(
-            `Không thể nhận diện giọng nói (${event.error}). Bạn có thể thử lại hoặc nhập trực tiếp.`,
+            isInAppBrowser
+              ? 'Hãy mở bằng Chrome hoặc Safari để bật Micro.'
+              : 'Trình duyệt chưa hỗ trợ Micro — hãy nhập trực tiếp.',
           );
         }
-      };
-
-      rec.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = rec;
-      rec.start();
-    } catch {
-      if (!silentFail) {
-        setError('Không thể khởi động Micro. Bạn có thể gõ câu tiếng Việt tự nhiên bên dưới.');
+        return;
       }
-      setIsListening(false);
-    }
-  }, [isInAppBrowser]);
 
-  // Auto-listen immediately when modal opens (silent fallback if browser requires tap)
+      setError('');
+      cancelAutoSave();
+      hadSpeechResultRef.current = false;
+
+      try {
+        const rec = new Ctor();
+        rec.lang = 'vi-VN';
+        rec.continuous = false;
+        rec.interimResults = true;
+
+        rec.onstart = () => {
+          setIsListening(true);
+          setError('');
+        };
+
+        rec.onresult = (event) => {
+          let combined = '';
+          for (let i = 0; i < event.results.length; i++) {
+            combined += event.results[i][0].transcript;
+          }
+          const clean = combined.trim();
+          if (clean) {
+            hadSpeechResultRef.current = true;
+            setTranscript(clean);
+            setAiItems(null);
+            setOverrides({});
+            setExcludedIds([]);
+            setEditingCatItemId(null);
+          }
+        };
+
+        rec.onerror = (event) => {
+          setIsListening(false);
+          if (silentFail) return;
+          if (event.error === 'not-allowed') {
+            setError('Chưa cấp quyền Micro trên trình duyệt.');
+          } else if (event.error === 'no-speech') {
+            setError('Không nghe thấy giọng nói, hãy thử lại.');
+          } else if (event.error !== 'aborted') {
+            setError(`Lỗi Micro (${event.error}).`);
+          }
+        };
+
+        rec.onend = () => {
+          setIsListening(false);
+          if (hadSpeechResultRef.current) {
+            setFromSpeechEnd(true);
+          }
+        };
+
+        recognitionRef.current = rec;
+        rec.start();
+      } catch {
+        if (!silentFail) setError('Không thể khởi động Micro.');
+        setIsListening(false);
+      }
+    },
+    [isInAppBrowser, cancelAutoSave],
+  );
+
+  // Auto-listen when modal opens
   useEffect(() => {
     if (!open) {
       stopListening();
+      aiAbortRef.current?.abort();
       setTranscript('');
+      setAiItems(null);
+      setIsRefiningAI(false);
+      setOverrides({});
       setExcludedIds([]);
+      setEditingCatItemId(null);
+      setAutoSaveCountdown(null);
+      setFromSpeechEnd(false);
       setError('');
       return;
     }
@@ -164,13 +231,14 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
     if (isSpeechSupported && !isInAppBrowser) {
       const timer = window.setTimeout(() => {
         startListening(true);
-      }, 220);
+      }, 200);
       return () => window.clearTimeout(timer);
     }
   }, [open, isSpeechSupported, isInAppBrowser, startListening, stopListening]);
 
   useEffect(() => {
     return () => {
+      aiAbortRef.current?.abort();
       try {
         recognitionRef.current?.abort();
       } catch {
@@ -179,12 +247,8 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
     };
   }, []);
 
-  const toggleListening = () => {
-    if (isListening) stopListening();
-    else startListening(false);
-  };
-
-  const parsedItems = useMemo<VoiceParseResult[]>(() => {
+  // 1) Instant 0ms local NLP parse while speaking or typing
+  const localItems = useMemo<VoiceParseResult[]>(() => {
     if (!transcript.trim()) return [];
     return parseVietnameseVoiceBatch(
       transcript,
@@ -194,14 +258,64 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
     );
   }, [transcript, state.categories, state.members, activeMember.id]);
 
-  const activeItems = useMemo(
-    () => parsedItems.filter((item) => !excludedIds.includes(item.id)),
-    [parsedItems, excludedIds],
-  );
+  // 2) Automatic Cloudflare AI semantic refinement once user pauses speaking/typing
+  useEffect(() => {
+    aiAbortRef.current?.abort();
+    const clean = transcript.trim();
+
+    if (!open || isListening || clean.length < 4) {
+      setIsRefiningAI(false);
+      return;
+    }
+
+    const delayMs = fromSpeechEnd ? 80 : 480;
+    const timer = window.setTimeout(() => {
+      const controller = new AbortController();
+      aiAbortRef.current = controller;
+      setIsRefiningAI(true);
+
+      void parseVoiceWithAI(
+        clean,
+        state.categories,
+        state.members,
+        activeMember.id,
+        controller.signal,
+      ).then((res) => {
+        if (controller.signal.aborted) return;
+        setIsRefiningAI(false);
+        if (res && res.length > 0) {
+          setAiItems(res);
+          setOverrides({});
+          setExcludedIds([]);
+        }
+      });
+    }, delayMs);
+
+    return () => {
+      window.clearTimeout(timer);
+      aiAbortRef.current?.abort();
+    };
+  }, [open, isListening, transcript, fromSpeechEnd, state.categories, state.members, activeMember.id]);
+
+  const mergedItems = useMemo<VoiceParseResult[]>(() => {
+    const base = aiItems && aiItems.length > 0 ? aiItems : localItems;
+    return base
+      .filter((item) => !excludedIds.includes(item.id))
+      .map((item) => {
+        const ov = overrides[item.id];
+        return ov
+          ? {
+              ...item,
+              categoryId: ov.categoryId ?? item.categoryId,
+              memberId: ov.memberId ?? item.memberId,
+            }
+          : item;
+      });
+  }, [aiItems, localItems, excludedIds, overrides]);
 
   const validItems = useMemo(
-    () => activeItems.filter((item) => item.amount > 0),
-    [activeItems],
+    () => mergedItems.filter((item) => item.amount > 0),
+    [mergedItems],
   );
 
   const totalBatchAmount = useMemo(
@@ -209,38 +323,11 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
     [validItems],
   );
 
-  const catMap = useMemo(
-    () => new Map(state.categories.map((c) => [c.id, c])),
-    [state.categories],
-  );
-  const memMap = useMemo(
-    () => new Map(state.members.map((m) => [m.id, m])),
-    [state.members],
-  );
-
-  const buildDraftFromItem = (item: VoiceParseResult): TransactionDraft => {
-    const now = new Date();
-    return {
-      type: item.type,
-      amount: item.amount,
-      categoryId: item.categoryId,
-      memberId: item.memberId,
-      date: item.date,
-      time: `${pad2(now.getHours())}:${pad2(now.getMinutes())}`,
-      note: item.note || item.transcript,
-      paymentMethod: item.paymentMethod,
-      source: 'voice',
-    };
-  };
-
-  const handleSaveAll = () => {
+  const handleSaveAll = useCallback(() => {
     if (validItems.length === 0) {
-      setError(
-        'Chưa nhận diện được số tiền. Hãy nói rõ số tiền (vd: "4 chục", "1 lít 2", "450 nghìn").',
-      );
+      setError('Chưa nhận diện được số tiền.');
       return;
     }
-
     const now = new Date();
     const timeStr = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
 
@@ -258,10 +345,101 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
       })),
     );
     onClose();
+  }, [validItems, addTransactionsBatch, onClose]);
+
+  // Hands-free Auto-Save Countdown: starts automatically after voice ends + AI refinement completes
+  useEffect(() => {
+    if (
+      !open ||
+      !autoSaveEnabled ||
+      !fromSpeechEnd ||
+      isListening ||
+      isRefiningAI ||
+      validItems.length === 0 ||
+      editingCatItemId !== null
+    ) {
+      return;
+    }
+
+    setAutoSaveCountdown(2.5);
+    const startedAt = Date.now();
+    const totalMs = 2500;
+
+    const interval = window.setInterval(() => {
+      const remaining = Math.max(0, (totalMs - (Date.now() - startedAt)) / 1000);
+      if (remaining <= 0.05) {
+        window.clearInterval(interval);
+        setAutoSaveCountdown(null);
+        handleSaveAll();
+      } else {
+        setAutoSaveCountdown(remaining);
+      }
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, [
+    open,
+    autoSaveEnabled,
+    fromSpeechEnd,
+    isListening,
+    isRefiningAI,
+    validItems.length,
+    editingCatItemId,
+    handleSaveAll,
+  ]);
+
+  const catMap = useMemo(
+    () => new Map(state.categories.map((c) => [c.id, c])),
+    [state.categories],
+  );
+  const memMap = useMemo(
+    () => new Map(state.members.map((m) => [m.id, m])),
+    [state.members],
+  );
+
+  const cycleMemberForItem = (item: VoiceParseResult) => {
+    cancelAutoSave();
+    const idx = state.members.findIndex((m) => m.id === item.memberId);
+    const next = state.members[(idx + 1) % state.members.length];
+    if (!next) return;
+    setOverrides((prev) => ({
+      ...prev,
+      [item.id]: { ...prev[item.id], memberId: next.id },
+    }));
   };
 
-  const isMultiBatch = activeItems.length >= 2;
-  const singleItem = activeItems[0] || null;
+  const setCategoryForItem = (itemId: string, catId: string) => {
+    cancelAutoSave();
+    setOverrides((prev) => ({
+      ...prev,
+      [itemId]: { ...prev[itemId], categoryId: catId },
+    }));
+    setEditingCatItemId(null);
+  };
+
+  const buildDraftFromItem = (item: VoiceParseResult): TransactionDraft => {
+    const now = new Date();
+    return {
+      type: item.type,
+      amount: item.amount,
+      categoryId: item.categoryId,
+      memberId: item.memberId,
+      date: item.date,
+      time: `${pad2(now.getHours())}:${pad2(now.getMinutes())}`,
+      note: item.note || item.transcript,
+      paymentMethod: item.paymentMethod,
+      source: 'voice',
+    };
+  };
+
+  const toggleListening = () => {
+    if (isListening) stopListening();
+    else startListening(false);
+  };
+
+  const isMultiBatch = mergedItems.length >= 2;
+  const singleItem = mergedItems[0] || null;
+  const isAiPowered = Boolean(aiItems && aiItems.length > 0);
 
   return (
     <AnimatePresence>
@@ -282,25 +460,41 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
             transition={{ type: 'spring', stiffness: 340, damping: 32 }}
             className="relative z-10 w-full sm:max-w-lg max-h-[92dvh] flex flex-col bg-white dark:bg-[#141923] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl border border-slate-200/60 dark:border-slate-800 overflow-hidden"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+            {/* Header with Hands-Free Auto-Save Toggle */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-slate-800 gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-2xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
                   <Mic size={19} />
                 </div>
-                <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                <h2 className="text-base font-extrabold text-slate-900 dark:text-white truncate">
                   Nhập bằng giọng nói
                 </h2>
               </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                aria-label="Đóng"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={toggleAutoSavePref}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                    autoSaveEnabled
+                      ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border-emerald-500/35'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent'
+                  }`}
+                  title="Tự động lưu sau khi nói xong"
+                >
+                  <Zap size={12} />
+                  <span>Tự lưu</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  aria-label="Đóng"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {/* Body */}
@@ -372,15 +566,6 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                 </div>
               </div>
 
-              {isInAppBrowser && !error && (
-                <div className="flex items-start gap-2 p-2.5 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 text-[11px] font-medium">
-                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                  <span>
-                    Bạn đang mở từ Zalo/Facebook — nếu Micro không bật, hãy mở link bằng Chrome hoặc Safari để dùng giọng nói tốt nhất.
-                  </span>
-                </div>
-              )}
-
               {error && (
                 <div className="flex items-start gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-medium">
                   <AlertCircle size={15} className="shrink-0 mt-0.5" />
@@ -394,8 +579,12 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                   rows={2}
                   value={transcript}
                   onChange={(e) => {
+                    cancelAutoSave();
                     setTranscript(e.target.value);
+                    setAiItems(null);
+                    setOverrides({});
                     setExcludedIds([]);
+                    setEditingCatItemId(null);
                     setError('');
                   }}
                   placeholder="Ví dụ: Mua thịt 120k, rau 4 chục..."
@@ -405,8 +594,12 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                   <button
                     type="button"
                     onClick={() => {
+                      cancelAutoSave();
                       setTranscript('');
+                      setAiItems(null);
+                      setOverrides({});
                       setExcludedIds([]);
+                      setEditingCatItemId(null);
                     }}
                     className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 cursor-pointer"
                     aria-label="Xóa nội dung"
@@ -416,26 +609,70 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                 )}
               </div>
 
-              {/* Instant Live NLP Extraction Preview — Supports BOTH Single & Multi-Item Batch! */}
-              {activeItems.length > 0 && (
+              {/* Hands-free Auto-Save Countdown Bar */}
+              <AnimatePresence>
+                {autoSaveCountdown !== null && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="p-3 rounded-2xl bg-emerald-500/12 border border-emerald-500/30 space-y-2"
+                  >
+                    <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Zap size={13} />
+                        Tự động lưu sau {Math.ceil(autoSaveCountdown)}s...
+                      </span>
+                      <button
+                        type="button"
+                        onClick={cancelAutoSave}
+                        className="px-2.5 py-0.5 rounded-lg bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-[11px] font-bold cursor-pointer"
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-emerald-500/20 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-100"
+                        style={{ width: `${Math.min(100, (autoSaveCountdown / 2.5) * 100)}%` }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Smart Hybrid Extraction Preview (Instant Local + AI Semantic Refinement + Inline Category/Member Tweak) */}
+              {mergedItems.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-3xl bg-gradient-to-br from-violet-500/8 via-emerald-500/6 to-teal-500/8 border border-emerald-500/25 space-y-3"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                      {isMultiBatch ? <Layers size={13} /> : <Sparkles size={13} />}
-                      <span>
-                        {isMultiBatch
-                          ? `Tự động tách ${activeItems.length} khoản chi`
-                          : 'Tự động bóc tách thông minh'}
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                        {isMultiBatch ? <Layers size={13} /> : <Sparkles size={13} />}
+                        <span>
+                          {isMultiBatch ? `${mergedItems.length} khoản` : 'Tự động phân loại'}
+                        </span>
                       </span>
-                    </span>
+
+                      {isRefiningAI ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-300 text-[10px] font-bold">
+                          <Loader2 size={10} className="animate-spin" />
+                          AI
+                        </span>
+                      ) : isAiPowered ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
+                          <Cloud size={10} />
+                          AI
+                        </span>
+                      ) : null}
+                    </div>
 
                     {isMultiBatch ? (
                       <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold tabular-nums">
-                        Tổng {formatVND(totalBatchAmount)}
+                        {formatVND(totalBatchAmount)}
                       </span>
                     ) : (
                       <span
@@ -450,69 +687,144 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                     )}
                   </div>
 
-                  {/* Extracted Items List */}
+                  {/* Extracted Items List with 1-Tap Inline Category & Member Tweaking */}
                   <div className="space-y-2">
-                    {activeItems.map((item) => {
+                    {mergedItems.map((item) => {
                       const cat = catMap.get(item.categoryId);
                       const mem = memMap.get(item.memberId) || activeMember;
+                      const isEditingCat = editingCatItemId === item.id;
+                      const availableCats = state.categories.filter((c) => c.type === item.type);
+
                       return (
                         <div
                           key={item.id}
-                          className="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800"
+                          className="rounded-2xl bg-white/85 dark:bg-slate-900/65 border border-slate-200/60 dark:border-slate-800 overflow-hidden"
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <CategoryIconBadge
-                              icon={cat?.icon || 'MoreHorizontal'}
-                              color={cat?.color || '#64748B'}
-                              size="sm"
-                            />
-                            <div className="min-w-0">
-                              <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
-                                {item.note}
+                          <div className="flex items-center justify-between gap-2.5 p-2.5">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  cancelAutoSave();
+                                  setEditingCatItemId((prev) =>
+                                    prev === item.id ? null : item.id,
+                                  );
+                                }}
+                                title="Đổi danh mục"
+                                className="cursor-pointer rounded-xl focus:outline-none"
+                              >
+                                <CategoryIconBadge
+                                  icon={cat?.icon || 'MoreHorizontal'}
+                                  color={cat?.color || '#64748B'}
+                                  size="sm"
+                                  active={isEditingCat}
+                                />
+                              </button>
+
+                              <div className="min-w-0">
+                                <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                                  {item.note}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[10.5px] text-slate-500 dark:text-slate-400">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      cancelAutoSave();
+                                      setEditingCatItemId((prev) =>
+                                        prev === item.id ? null : item.id,
+                                      );
+                                    }}
+                                    className="font-bold hover:underline cursor-pointer"
+                                    style={{ color: cat?.color }}
+                                  >
+                                    {cat?.shortName || 'Khác'}
+                                  </button>
+                                  <span>•</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => cycleMemberForItem(item)}
+                                    className="inline-flex items-center gap-0.5 font-bold hover:underline cursor-pointer"
+                                    style={{ color: mem.color }}
+                                    title="Chạm đổi thành viên"
+                                  >
+                                    <DynamicIcon name={mem.icon} size={10} />
+                                    {mem.name}
+                                  </button>
+                                  <span>•</span>
+                                  <span className="inline-flex items-center gap-0.5 tabular-nums">
+                                    <Calendar size={10} />
+                                    {item.date.slice(8, 10)}/{item.date.slice(5, 7)}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[10.5px] text-slate-500 dark:text-slate-400">
-                                <span>{cat?.shortName || 'Khác'}</span>
-                                <span>•</span>
-                                <span
-                                  className="inline-flex items-center gap-0.5 font-bold"
-                                  style={{ color: mem.color }}
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span
+                                className={`text-sm font-extrabold tabular-nums ${
+                                  item.amount > 0
+                                    ? item.type === 'income'
+                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                      : 'text-slate-900 dark:text-white'
+                                    : 'text-amber-500'
+                                }`}
+                              >
+                                {item.amount > 0 ? formatVND(item.amount) : 'Chưa rõ'}
+                              </span>
+
+                              {isMultiBatch && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    cancelAutoSave();
+                                    setExcludedIds((prev) => [...prev, item.id]);
+                                  }}
+                                  className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer"
+                                  aria-label="Bỏ khoản này"
                                 >
-                                  <DynamicIcon name={mem.icon} size={10} />
-                                  {mem.name}
-                                </span>
-                                <span>•</span>
-                                <span className="inline-flex items-center gap-0.5 tabular-nums">
-                                  <Calendar size={10} />
-                                  {item.date.slice(8, 10)}/{item.date.slice(5, 7)}
-                                </span>
-                              </div>
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span
-                              className={`text-sm font-extrabold tabular-nums ${
-                                item.amount > 0
-                                  ? item.type === 'income'
-                                    ? 'text-emerald-600 dark:text-emerald-400'
-                                    : 'text-slate-900 dark:text-white'
-                                  : 'text-amber-500'
-                              }`}
-                            >
-                              {item.amount > 0 ? formatVND(item.amount) : 'Chưa rõ'}
-                            </span>
-
-                            {isMultiBatch && (
-                              <button
-                                type="button"
-                                onClick={() => setExcludedIds((prev) => [...prev, item.id])}
-                                className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer"
-                                aria-label="Bỏ khoản này"
+                          {/* Inline 1-Tap Category Switcher Strip */}
+                          <AnimatePresence initial={false}>
+                            {isEditingCat && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden border-t border-slate-100 dark:border-slate-800"
                               >
-                                <Trash2 size={13} />
-                              </button>
+                                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar p-2 bg-slate-50/70 dark:bg-slate-950/40">
+                                  {availableCats.map((c) => {
+                                    const active = c.id === item.categoryId;
+                                    return (
+                                      <button
+                                        key={c.id}
+                                        type="button"
+                                        onClick={() => setCategoryForItem(item.id, c.id)}
+                                        className={`shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                                          active
+                                            ? 'text-white border-transparent'
+                                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
+                                        }`}
+                                        style={active ? { backgroundColor: c.color } : undefined}
+                                      >
+                                        <DynamicIcon
+                                          name={c.icon}
+                                          size={11}
+                                          style={!active ? { color: c.color } : undefined}
+                                        />
+                                        <span>{c.shortName}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </motion.div>
                             )}
-                          </div>
+                          </AnimatePresence>
                         </div>
                       );
                     })}
@@ -520,7 +832,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                 </motion.div>
               )}
 
-              {/* Clickable Sample Phrases (including multi-item & colloquial Vietnamese slang!) */}
+              {/* Clickable Sample Phrases */}
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
                   Câu mẫu
@@ -531,8 +843,12 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                       key={phrase}
                       type="button"
                       onClick={() => {
+                        cancelAutoSave();
                         setTranscript(phrase);
+                        setAiItems(null);
+                        setOverrides({});
                         setExcludedIds([]);
+                        setEditingCatItemId(null);
                         setError('');
                       }}
                       className="text-left px-3 py-1.5 rounded-xl text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-violet-500/15 hover:text-violet-700 dark:hover:text-violet-300 transition-colors cursor-pointer"
@@ -553,6 +869,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                     disabled={!singleItem}
                     onClick={() => {
                       if (!singleItem) return;
+                      cancelAutoSave();
                       const draft = buildDraftFromItem(singleItem);
                       onClose();
                       onEditDraft(draft);
@@ -560,7 +877,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                     className="flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-bold disabled:opacity-40 cursor-pointer"
                   >
                     <Edit3 size={15} />
-                    <span>Chỉnh sửa chi tiết</span>
+                    <span>Chỉnh sửa</span>
                   </button>
                 )}
 

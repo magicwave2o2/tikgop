@@ -19,6 +19,7 @@ export interface VoiceParseResult {
   date: string;
   paymentMethod: PaymentMethod;
   note: string;
+  engine?: 'cloudflare-ai' | 'local';
 }
 
 const VI_WORD_DIGITS: Record<string, number> = {
@@ -364,6 +365,7 @@ export function parseVietnameseVoiceExpense(
     date,
     paymentMethod,
     note,
+    engine: 'local',
   };
 }
 
@@ -417,10 +419,85 @@ export function parseVietnameseVoiceBatch(
   ];
 }
 
+/**
+ * Hybrid AI voice parser: sends final Vietnamese transcript to Cloudflare Workers AI (/api/parse-voice)
+ * for deep semantic classification (handles tricky phrases, slang, multi-item splits & custom categories).
+ * Returns null cleanly when offline or unavailable so the caller keeps the instant local parse.
+ */
+export async function parseVoiceWithAI(
+  transcript: string,
+  categories: Category[],
+  members: FamilyMember[],
+  activeMemberId: string,
+  signal?: AbortSignal,
+): Promise<VoiceParseResult[] | null> {
+  const clean = transcript.trim();
+  if (clean.length < 3) return null;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return null;
+
+  try {
+    const res = await fetch('/api/parse-voice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transcript: clean,
+        today: toDateKey(getToday()),
+        activeMemberId,
+        members: members.map((m) => ({ id: m.id, name: m.name, role: m.role })),
+        categories: categories.map((c) => ({ id: c.id, name: c.name, type: c.type })),
+      }),
+      signal,
+    });
+
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      ok?: boolean;
+      items?: Array<{
+        type?: TransactionType;
+        amount?: number;
+        categoryId?: string;
+        memberId?: string;
+        date?: string;
+        paymentMethod?: PaymentMethod;
+        note?: string;
+      }>;
+    };
+
+    if (!json.ok || !Array.isArray(json.items) || json.items.length === 0) return null;
+
+    return json.items.map((item, idx) => {
+      const type: TransactionType = item.type === 'income' ? 'income' : 'expense';
+      const amount = typeof item.amount === 'number' && item.amount > 0 ? Math.round(item.amount) : 0;
+      const validCat = categories.some((c) => c.id === item.categoryId && c.type === type)
+        ? item.categoryId!
+        : detectCategoryFromText(item.note || clean, type, categories);
+      const validMember = members.some((m) => m.id === item.memberId)
+        ? item.memberId!
+        : activeMemberId;
+
+      return {
+        id: `ai_voice_${idx}_${amount}_${validCat}`,
+        transcript: clean,
+        type,
+        amount,
+        categoryId: validCat,
+        memberId: validMember,
+        memberMatched: validMember !== activeMemberId,
+        date: item.date || toDateKey(getToday()),
+        paymentMethod: item.paymentMethod || 'cash',
+        note: (item.note || clean).trim(),
+        engine: 'cloudflare-ai',
+      };
+    });
+  } catch {
+    return null;
+  }
+}
+
 export const VOICE_SAMPLE_PHRASES = [
   'Mẹ Trang đi chợ mua thịt 120k, rau 4 chục, trái cây 65 nghìn',
   'Cha Bình đổ xăng 1 lít 2 và ăn sáng 65k tiền mặt',
-  'Minh Phát mua sách vở Fahasa 85 ngàn',
-  'Mai Anh uống trà sữa 5 chục ví điện tử',
-  'Hôm qua đóng tiền điện 1 củ 420 nghìn chuyển khoản',
+  'Mua bó hoa tặng cô giáo Mai Anh 250 nghìn',
+  'Đóng quỹ lớp cho Minh Phát 300k chuyển khoản',
+  'Bán hàng thu 1 củ 8 chuyển khoản',
 ];

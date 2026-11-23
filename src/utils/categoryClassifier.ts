@@ -33,15 +33,28 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'thuc pham',
       'rau cu',
       'rau xanh',
+      'mua rau',
       'trai cay',
+      'hoa qua',
       'thit ca',
+      'mua thit',
+      'mua ca',
       'thit heo',
       'thit bo',
+      'thit ga',
       'hai san',
       'trung ga',
+      'mua trung',
       'sua tuoi',
+      'sua chua',
+      'mua sua',
+      'dau an',
+      'nuoc mam',
+      'gia vi',
       'gao',
+      'mua gao',
       'tap hoa',
+      'banh keo',
     ],
   },
   {
@@ -54,32 +67,48 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'an uong',
       'nha hang',
       'quan an',
+      'quan nhau',
       'pho',
       'bun',
+      'hu tieu',
+      'mi quang',
       'com',
+      'xoi',
+      'chao',
       'banh mi',
+      'banh cuon',
+      'banh xeo',
       'tra sua',
+      'tra chanh',
+      'tra dao',
+      'matcha',
       'ca phe',
       'cafe',
       'coffee',
       'highlands',
       'phuc long',
       'starbucks',
-      'katina',
+      'katinat',
       'gong cha',
       'mixue',
       'pizza',
       'kfc',
       'lotteria',
       'jollibee',
+      'grabfood',
+      'shopeefood',
       'lau',
       'nuong',
       'bbq',
       'buffet',
       'kem',
+      'che',
       'banh ngot',
+      'tiem banh',
       'nuoc ep',
       'sinh to',
+      'uong nuoc',
+      'nhau',
     ],
   },
   {
@@ -90,8 +119,12 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'evn',
       'tien nuoc',
       'cap nuoc',
+      'tien gas',
+      'doi gas',
+      'binh gas',
       'internet',
       'wifi',
+      'tien mang',
       'mang',
       'vnpt',
       'fpt',
@@ -99,17 +132,24 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'truyen hinh',
       'hoa don',
       'phi quan ly',
+      'phi dich vu',
       'chung cu',
       'tien rac',
       'cuoc dien thoai',
+      'tien dien thoai',
       'nap card',
       'nap dien thoai',
+      'netflix',
+      'icloud',
+      'youtube',
+      'spotify',
     ],
   },
   {
     categoryId: 'transport',
     keywords: [
       'do xang',
+      'tien xang',
       'xang',
       'petrolimex',
       'pvoil',
@@ -118,15 +158,22 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'grab',
       'taxi',
       'xanh sm',
-      'be ',
+      'be',
+      'gojek',
+      'xe om',
       'rua xe',
       'sua xe',
+      'va xe',
+      'thay lop',
+      'bom xe',
       'bao duong',
       'thay nhot',
+      'do nhot',
       've xe',
       've tau',
       've may bay',
       'cau duong',
+      'cao toc',
       'etc',
     ],
   },
@@ -136,10 +183,20 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'hoc phi',
       'ban tru',
       'hoc them',
+      'gia su',
+      'quy lop',
+      'dong tien lop',
+      'hoc dan',
+      'hoc boi',
+      'hoc vo',
       'sach vo',
       'nha sach',
       'fahasa',
       'but viet',
+      'but chi',
+      'vo viet',
+      'balo',
+      'cap sach',
       'dung cu hoc',
       'hoc sinh',
       'lop ve',
@@ -150,6 +207,8 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'mua sach',
       'truyen tranh',
       'bim sua',
+      'do choi',
+      'tieu vat',
     ],
   },
   {
@@ -166,10 +225,17 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'benh vien',
       'phong kham',
       'nha khoa',
+      'kham mat',
+      'cat kinh',
+      'tiem phong',
+      'vac xin',
       'xet nghiem',
+      'sieu am',
       'bao hiem',
       'y te',
       'suc khoe',
+      'khau trang',
+      'dau gio',
     ],
   },
   {
@@ -190,6 +256,17 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'tui xach',
       'dong ho',
       'dien thoai',
+      'cat toc',
+      'lam toc',
+      'goi dau',
+      'lam nail',
+      'spa',
+      'nuoc hoa',
+      'sua rua mat',
+      'kem chong nang',
+      'do gia dung',
+      'sua nha',
+      'ong nuoc',
     ],
   },
   {
@@ -197,16 +274,23 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
     keywords: [
       'dau tu',
       'mua vang',
+      'chi vang',
+      'vang sjc',
+      'vang nhan',
       'gui tiet kiem',
+      'so tiet kiem',
       'tiet kiem',
       'chung khoan',
       'co phieu',
       'quy etf',
       'chung chi quy',
+      'quy mo',
       'trai phieu',
       'tich luy',
       'tich tru',
       'bat dong san',
+      'crypto',
+      'bitcoin',
     ],
   },
   {
@@ -225,6 +309,8 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'khach san',
       'homestay',
       'giai tri',
+      'bowling',
+      'bida',
     ],
   },
   {
@@ -233,8 +319,16 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
       'bieu ong ba',
       'bieu',
       'mung cuoi',
+      'dam cuoi',
+      'day thang',
+      'thoi noi',
+      'mung tho',
+      'dam gio',
       'qua sinh nhat',
       'tang qua',
+      'tang co giao',
+      'mua hoa',
+      'bo hoa',
       'hieu hi',
       'tham hoi',
       'tu thien',
@@ -246,15 +340,25 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
     keywords: [
       'kinh doanh',
       'nhap hang',
+      'nhap si',
+      'lay hang',
       'von hang',
       'van chuyen',
+      'tien ship',
+      'phi ship',
+      'ship hang',
+      'dong hang',
+      'dong goi',
+      'bao bi',
+      'hop carton',
       'quang cao',
       'chay ads',
+      'facebook ads',
+      'tiktok ads',
       'ban hang',
       'cua hang',
-      'ship hang',
-      'dong goi',
       'vat tu',
+      'nguyen lieu',
       'in an',
     ],
   },
@@ -263,8 +367,14 @@ const EXPENSE_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
 const INCOME_KEYWORDS: Array<{ categoryId: string; keywords: string[] }> = [
   { categoryId: 'salary', keywords: ['luong', 'tien luong', 'nhan luong', 'phu cap'] },
   { categoryId: 'bonus', keywords: ['thuong', 'hoa hong', 'kpi', 'du an'] },
-  { categoryId: 'business', keywords: ['ban hang', 'kinh doanh', 'khach tra', 'lam them'] },
-  { categoryId: 'invest', keywords: ['lai tiet kiem', 'co tuc', 'dau tu', 'chung khoan', 'gui tiet kiem'] },
+  {
+    categoryId: 'business',
+    keywords: ['ban hang', 'kinh doanh', 'khach tra', 'thu tien hang', 'lam them', 'chot don'],
+  },
+  {
+    categoryId: 'invest',
+    keywords: ['lai tiet kiem', 'co tuc', 'dau tu', 'chung khoan', 'loi nhuan'],
+  },
 ];
 
 export function detectTransactionType(rawText: string): TransactionType {
@@ -277,10 +387,16 @@ export function detectTransactionType(rawText: string): TransactionType {
     'duoc thuong',
     'thu nhap',
     'thu tien',
+    'ban hang duoc',
+    'ban hang thu',
+    'khach tra',
+    'khach chuyen khoan',
     'lai tiet kiem',
     'co tuc',
     'hoan tien',
     'duoc tang tien',
+    'duoc cho',
+    'duoc li xi',
   ];
   if (incomeCues.some((cue) => norm.includes(cue))) return 'income';
   return 'expense';
@@ -309,7 +425,6 @@ export function detectCategoryFromText(
     }
   }
 
-  // Fallback: match against user custom category names
   for (const cat of categories) {
     if (cat.type !== type) continue;
     const catNorm = normalizeVietnamese(cat.name);
@@ -328,7 +443,6 @@ export function detectMemberFromText(
 ): { memberId: string; matchedName?: string } {
   const norm = normalizeVietnamese(rawText);
 
-  // Check exact full names first
   for (const m of members) {
     const full = normalizeVietnamese(m.name);
     if (full && norm.includes(full)) {
@@ -336,7 +450,6 @@ export function detectMemberFromText(
     }
   }
 
-  // Check Vietnamese family member aliases (Cha Bình, Mẹ Trang, Minh Phát, Mai Anh)
   const aliases: Array<{ tokens: string[]; matchName: string[] }> = [
     { tokens: ['cha binh', 'bo binh', 'ba binh', 'cha ', 'bo '], matchName: ['binh', 'cha', 'bo'] },
     { tokens: ['me trang', 'ma trang', 'me ', 'ma '], matchName: ['trang', 'me'] },
@@ -354,7 +467,6 @@ export function detectMemberFromText(
     }
   }
 
-  // Fallback: match last word of member name if >= 4 chars (e.g., "binh", "trang", "phat")
   for (const m of members) {
     const parts = normalizeVietnamese(m.name).split(' ');
     const last = parts[parts.length - 1];
@@ -369,11 +481,26 @@ export function detectMemberFromText(
 export function detectPaymentMethodFromText(rawText: string): PaymentMethod | undefined {
   const norm = normalizeVietnamese(rawText);
   if (norm.includes('tien mat') || norm.includes('tra mat')) return 'cash';
-  if (norm.includes('chuyen khoan') || norm.includes('ck ') || norm.includes('banking') || norm.includes('vietqr'))
+  if (
+    norm.includes('chuyen khoan') ||
+    norm.includes('ck ') ||
+    norm.includes('banking') ||
+    norm.includes('vietqr')
+  )
     return 'bank';
-  if (norm.includes('momo') || norm.includes('zalopay') || norm.includes('vnpay') || norm.includes('vi dien tu'))
+  if (
+    norm.includes('momo') ||
+    norm.includes('zalopay') ||
+    norm.includes('vnpay') ||
+    norm.includes('vi dien tu')
+  )
     return 'ewallet';
-  if (norm.includes('the tin dung') || norm.includes('quet the') || norm.includes('visa') || norm.includes('mastercard'))
+  if (
+    norm.includes('the tin dung') ||
+    norm.includes('quet the') ||
+    norm.includes('visa') ||
+    norm.includes('mastercard')
+  )
     return 'card';
   return undefined;
 }

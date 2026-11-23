@@ -86,7 +86,17 @@ function extractTextFromAiResponse(res: unknown): string {
       const first = obj.choices[0] as Record<string, unknown>;
       const msg = first?.message as Record<string, unknown> | undefined;
       if (typeof msg?.content === 'string') return msg.content;
+      if (Array.isArray(msg?.content)) {
+        return msg.content
+          .map((part) =>
+            typeof part === 'object' && part && 'text' in part
+              ? String((part as { text?: unknown }).text || '')
+              : '',
+          )
+          .join('\n');
+      }
     }
+    if (typeof obj.result === 'string') return obj.result;
   }
   return '';
 }
@@ -214,27 +224,39 @@ export async function onRequestPost(context: PagesContext): Promise<Response> {
     },
   ];
 
-  // Try Google Gemma 4 Vision first (fast MoE with strong Vietnamese OCR + handwriting),
-  // then seamlessly fail over to Meta Llama 4 Scout Vision if needed.
-  const models = [
-    '@cf/google/gemma-4-26b-a4b-it',
-    '@cf/meta/llama-4-scout-17b-16e-instruct',
+  // Try Google Gemma 4 Vision first (thinking disabled for instant JSON OCR),
+  // then fail over to Meta Llama 4 Scout Vision if needed.
+  const attempts: Array<{ model: string; extra: Record<string, unknown> }> = [
+    {
+      model: '@cf/google/gemma-4-26b-a4b-it',
+      extra: {
+        max_tokens: 768,
+        temperature: 0.1,
+        chat_template_kwargs: { enable_thinking: false },
+      },
+    },
+    {
+      model: '@cf/meta/llama-4-scout-17b-16e-instruct',
+      extra: {
+        max_tokens: 768,
+        temperature: 0.1,
+      },
+    },
   ];
 
   let lastError = 'AI Vision không thể đọc hóa đơn.';
 
-  for (const model of models) {
+  for (const { model, extra } of attempts) {
     try {
       const response = await context.env.AI.run(model, {
         messages,
-        max_tokens: 512,
-        temperature: 0.1,
+        ...extra,
       });
 
       const text = extractTextFromAiResponse(response);
       const parsed = parseAiJson(text, fallbackDate);
 
-      if (parsed && (parsed.amount > 0 || parsed.merchant || parsed.rawText)) {
+      if (parsed) {
         return new Response(
           JSON.stringify({
             ok: true,

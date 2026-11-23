@@ -1,0 +1,496 @@
+import type {
+  Category,
+  CategoryBreakdownItem,
+  DateGroup,
+  FamilyMember,
+  MemberBreakdownItem,
+  SmartInsight,
+  Timeframe,
+  Transaction,
+  TransactionType,
+  TrendBucket,
+} from '../types/finance';
+import {
+  WEEKDAYS_SHORT_VI,
+  addDays,
+  formatCompactVND,
+  formatDayMonth,
+  formatVND,
+  formatVietnameseDateHeader,
+  getEndOfMonth,
+  getEndOfWeek,
+  getPeriodRange,
+  getStartOfMonth,
+  getStartOfWeek,
+  getToday,
+  pad2,
+  parseDateKey,
+  toDateKey,
+} from './format';
+
+export function filterTransactionsByRange(
+  transactions: Transaction[],
+  start: Date,
+  end: Date,
+): Transaction[] {
+  const startKey = toDateKey(start);
+  const endKey = toDateKey(end);
+  return transactions.filter((tx) => tx.date >= startKey && tx.date <= endKey);
+}
+
+export interface PeriodSummary {
+  totalExpense: number;
+  totalIncome: number;
+  netBalance: number;
+  savingsRate: number;
+  prevExpense: number;
+  prevIncome: number;
+  expenseDeltaPct: number | null;
+  dailyAverage: number;
+  transactionCount: number;
+  expenseCount: number;
+  incomeCount: number;
+}
+
+export function computePeriodSummary(
+  transactions: Transaction[],
+  timeframe: Timeframe,
+  anchor: Date,
+): PeriodSummary {
+  const range = getPeriodRange(timeframe, anchor);
+  const currentTxs = filterTransactionsByRange(transactions, range.start, range.end);
+  const prevTxs = filterTransactionsByRange(transactions, range.prevStart, range.prevEnd);
+
+  let totalExpense = 0;
+  let totalIncome = 0;
+  let expenseCount = 0;
+  let incomeCount = 0;
+
+  for (const tx of currentTxs) {
+    if (tx.type === 'expense') {
+      totalExpense += tx.amount;
+      expenseCount++;
+    } else {
+      totalIncome += tx.amount;
+      incomeCount++;
+    }
+  }
+
+  let prevExpense = 0;
+  let prevIncome = 0;
+  for (const tx of prevTxs) {
+    if (tx.type === 'expense') prevExpense += tx.amount;
+    else prevIncome += tx.amount;
+  }
+
+  const expenseDeltaPct =
+    prevExpense > 0 ? Math.round(((totalExpense - prevExpense) / prevExpense) * 100) : null;
+
+  // Smart elapsed-days divisor for current period so average/day reflects actual spending pace
+  const today = getToday();
+  let effectiveDays = range.daysCount;
+  if (toDateKey(today) >= toDateKey(range.start) && toDateKey(today) <= toDateKey(range.end)) {
+    effectiveDays = Math.max(
+      1,
+      Math.round((today.getTime() - range.start.getTime()) / 86400000) + 1,
+    );
+  }
+
+  const netBalance = totalIncome - totalExpense;
+  const savingsRate =
+    totalIncome > 0 ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100) : 0;
+
+  return {
+    totalExpense,
+    totalIncome,
+    netBalance,
+    savingsRate,
+    prevExpense,
+    prevIncome,
+    expenseDeltaPct,
+    dailyAverage: Math.round(totalExpense / Math.max(1, effectiveDays)),
+    transactionCount: currentTxs.length,
+    expenseCount,
+    incomeCount,
+  };
+}
+
+export interface QuickRollups {
+  todayExpense: number;
+  todayCount: number;
+  weekExpense: number;
+  weekCount: number;
+  weekDeltaPct: number | null;
+  monthExpense: number;
+  monthIncome: number;
+  monthCount: number;
+  monthDeltaPct: number | null;
+  yearExpense: number;
+}
+
+export function computeQuickRollups(transactions: Transaction[]): QuickRollups {
+  const today = getToday();
+  const day = computePeriodSummary(transactions, 'day', today);
+  const week = computePeriodSummary(transactions, 'week', today);
+  const month = computePeriodSummary(transactions, 'month', today);
+  const year = computePeriodSummary(transactions, 'year', today);
+
+  return {
+    todayExpense: day.totalExpense,
+    todayCount: day.expenseCount,
+    weekExpense: week.totalExpense,
+    weekCount: week.expenseCount,
+    weekDeltaPct: week.expenseDeltaPct,
+    monthExpense: month.totalExpense,
+    monthIncome: month.totalIncome,
+    monthCount: month.expenseCount,
+    monthDeltaPct: month.expenseDeltaPct,
+    yearExpense: year.totalExpense,
+  };
+}
+
+export function aggregateByCategory(
+  transactions: Transaction[],
+  categories: Category[],
+  type: TransactionType = 'expense',
+): CategoryBreakdownItem[] {
+  const filtered = transactions.filter((tx) => tx.type === type);
+  const total = filtered.reduce((acc, tx) => acc + tx.amount, 0);
+
+  const map = new Map<string, { amount: number; count: number }>();
+  for (const tx of filtered) {
+    const prev = map.get(tx.categoryId) || { amount: 0, count: 0 };
+    prev.amount += tx.amount;
+    prev.count += 1;
+    map.set(tx.categoryId, prev);
+  }
+
+  const catMap = new Map(categories.map((c) => [c.id, c]));
+  const items: CategoryBreakdownItem[] = [];
+
+  for (const [catId, stats] of map.entries()) {
+    const category = catMap.get(catId) ?? {
+      id: catId,
+      name: 'Danh mục khác',
+      shortName: 'Khác',
+      type,
+      icon: 'MoreHorizontal' as const,
+      color: '#64748B',
+    };
+    items.push({
+      category,
+      amount: stats.amount,
+      count: stats.count,
+      percentage: total > 0 ? (stats.amount / total) * 100 : 0,
+      avgAmount: Math.round(stats.amount / Math.max(1, stats.count)),
+      budgetRatio: category.budget && category.budget > 0 ? stats.amount / category.budget : null,
+    });
+  }
+
+  return items.sort((a, b) => b.amount - a.amount);
+}
+
+export function aggregateByMember(
+  transactions: Transaction[],
+  members: FamilyMember[],
+  type: TransactionType = 'expense',
+): MemberBreakdownItem[] {
+  const filtered = transactions.filter((tx) => tx.type === type);
+  const total = filtered.reduce((acc, tx) => acc + tx.amount, 0);
+
+  const map = new Map<string, { amount: number; count: number }>();
+  for (const tx of filtered) {
+    const prev = map.get(tx.memberId) || { amount: 0, count: 0 };
+    prev.amount += tx.amount;
+    prev.count += 1;
+    map.set(tx.memberId, prev);
+  }
+
+  return members
+    .map((member) => {
+      const stats = map.get(member.id) || { amount: 0, count: 0 };
+      return {
+        member,
+        amount: stats.amount,
+        count: stats.count,
+        percentage: total > 0 ? (stats.amount / total) * 100 : 0,
+      };
+    })
+    .sort((a, b) => b.amount - a.amount);
+}
+
+export function groupTransactionsByDate(transactions: Transaction[]): DateGroup[] {
+  const sorted = [...transactions].sort((a, b) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date);
+    if (a.time !== b.time) return b.time.localeCompare(a.time);
+    return b.createdAt - a.createdAt;
+  });
+
+  const groups = new Map<string, DateGroup>();
+  for (const tx of sorted) {
+    let group = groups.get(tx.date);
+    if (!group) {
+      const header = formatVietnameseDateHeader(tx.date);
+      group = {
+        dateKey: tx.date,
+        title: header.title,
+        subtitle: header.subtitle,
+        totalExpense: 0,
+        totalIncome: 0,
+        items: [],
+      };
+      groups.set(tx.date, group);
+    }
+    group.items.push(tx);
+    if (tx.type === 'expense') group.totalExpense += tx.amount;
+    else group.totalIncome += tx.amount;
+  }
+
+  return Array.from(groups.values());
+}
+
+export function buildDailyMapForMonth(
+  transactions: Transaction[],
+  year: number,
+  month: number,
+): Map<string, { expense: number; income: number; count: number }> {
+  const prefix = `${year}-${pad2(month + 1)}-`;
+  const map = new Map<string, { expense: number; income: number; count: number }>();
+
+  for (const tx of transactions) {
+    if (!tx.date.startsWith(prefix)) continue;
+    const entry = map.get(tx.date) || { expense: 0, income: 0, count: 0 };
+    if (tx.type === 'expense') entry.expense += tx.amount;
+    else entry.income += tx.amount;
+    entry.count += 1;
+    map.set(tx.date, entry);
+  }
+
+  return map;
+}
+
+/**
+ * Automatically aggregates transactions into Day (Mon-Sun), Week (Weeks of Month),
+ * or Month (Last 6 or 12 months) series for visual charts.
+ */
+export function buildTrendSeries(
+  transactions: Transaction[],
+  mode: 'day' | 'week' | 'month',
+  anchor: Date,
+): TrendBucket[] {
+  const today = getToday();
+  const todayKey = toDateKey(today);
+
+  if (mode === 'day') {
+    const start = getStartOfWeek(anchor);
+    const buckets: TrendBucket[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(start, i);
+      const key = toDateKey(d);
+      const dayTxs = transactions.filter((tx) => tx.date === key);
+      let expense = 0;
+      let income = 0;
+      for (const tx of dayTxs) {
+        if (tx.type === 'expense') expense += tx.amount;
+        else income += tx.amount;
+      }
+      buckets.push({
+        key,
+        label: WEEKDAYS_SHORT_VI[i],
+        subLabel: formatDayMonth(d),
+        expense,
+        income,
+        count: dayTxs.length,
+        isCurrent: key === todayKey,
+        startDate: key,
+        endDate: key,
+      });
+    }
+    return buckets;
+  }
+
+  if (mode === 'week') {
+    // Divide the selected month cleanly into calendar weeks (Mon-Sun slices inside month)
+    const monthStart = getStartOfMonth(anchor);
+    const monthEnd = getEndOfMonth(anchor);
+    const buckets: TrendBucket[] = [];
+
+    let cursor = new Date(monthStart);
+    let weekIndex = 1;
+    while (cursor <= monthEnd) {
+      const weekEndCandidate = getEndOfWeek(cursor);
+      const sliceStart = new Date(cursor);
+      const sliceEnd = weekEndCandidate > monthEnd ? new Date(monthEnd) : weekEndCandidate;
+
+      const sKey = toDateKey(sliceStart);
+      const eKey = toDateKey(sliceEnd);
+      const weekTxs = transactions.filter((tx) => tx.date >= sKey && tx.date <= eKey);
+
+      let expense = 0;
+      let income = 0;
+      for (const tx of weekTxs) {
+        if (tx.type === 'expense') expense += tx.amount;
+        else income += tx.amount;
+      }
+
+      buckets.push({
+        key: `${sKey}_${eKey}`,
+        label: `Tuần ${weekIndex}`,
+        subLabel: `${pad2(sliceStart.getDate())}–${pad2(sliceEnd.getDate())}/${pad2(sliceEnd.getMonth() + 1)}`,
+        expense,
+        income,
+        count: weekTxs.length,
+        isCurrent: todayKey >= sKey && todayKey <= eKey,
+        startDate: sKey,
+        endDate: eKey,
+      });
+
+      cursor = addDays(sliceEnd, 1);
+      weekIndex++;
+    }
+    return buckets;
+  }
+
+  // Month mode: 6 months ending at anchor's month
+  const buckets: TrendBucket[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const mDate = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
+    const mStart = getStartOfMonth(mDate);
+    const mEnd = getEndOfMonth(mDate);
+    const sKey = toDateKey(mStart);
+    const eKey = toDateKey(mEnd);
+    const mTxs = transactions.filter((tx) => tx.date >= sKey && tx.date <= eKey);
+
+    let expense = 0;
+    let income = 0;
+    for (const tx of mTxs) {
+      if (tx.type === 'expense') expense += tx.amount;
+      else income += tx.amount;
+    }
+
+    const isCurrent =
+      mDate.getFullYear() === today.getFullYear() && mDate.getMonth() === today.getMonth();
+
+    buckets.push({
+      key: `${mDate.getFullYear()}-${pad2(mDate.getMonth() + 1)}`,
+      label: `T${mDate.getMonth() + 1}`,
+      subLabel: `Tháng ${mDate.getMonth() + 1}/${mDate.getFullYear()}`,
+      expense,
+      income,
+      count: mTxs.length,
+      isCurrent,
+      startDate: sKey,
+      endDate: eKey,
+    });
+  }
+  return buckets;
+}
+
+export function generateSmartInsights(
+  transactions: Transaction[],
+  categories: Category[],
+  members: FamilyMember[],
+  timeframe: Timeframe,
+  anchor: Date,
+  monthlyBudget: number,
+): SmartInsight[] {
+  const range = getPeriodRange(timeframe, anchor);
+  const periodTxs = filterTransactionsByRange(transactions, range.start, range.end);
+  const summary = computePeriodSummary(transactions, timeframe, anchor);
+  const catBreakdown = aggregateByCategory(periodTxs, categories, 'expense');
+  const memberBreakdown = aggregateByMember(periodTxs, members, 'expense');
+
+  const insights: SmartInsight[] = [];
+
+  // 1. Top category highlight
+  if (catBreakdown.length > 0) {
+    const top = catBreakdown[0];
+    insights.push({
+      id: 'top_cat',
+      icon: top.category.icon,
+      tone: 'amber',
+      title: `${top.category.name} chiếm ${Math.round(top.percentage)}% tổng chi`,
+      detail: `Tổng ${formatVND(top.amount)} qua ${top.count} giao dịch (TB ${formatCompactVND(top.avgAmount)}/lần).`,
+    });
+  }
+
+  // 2. Period comparison insight
+  if (summary.expenseDeltaPct !== null) {
+    const absDelta = Math.abs(summary.expenseDeltaPct);
+    const periodWord =
+      timeframe === 'day'
+        ? 'hôm qua'
+        : timeframe === 'week'
+          ? 'tuần trước'
+          : timeframe === 'month'
+            ? 'tháng trước'
+            : 'năm trước';
+
+    if (summary.expenseDeltaPct <= -5) {
+      insights.push({
+        id: 'delta_down',
+        icon: 'TrendingUp',
+        tone: 'emerald',
+        title: `Tiết kiệm hơn ${absDelta}% so với ${periodWord}`,
+        detail: `Gia đình đang kiểm soát chi tiêu rất tốt (giảm ${formatCompactVND(summary.prevExpense - summary.totalExpense)}).`,
+      });
+    } else if (summary.expenseDeltaPct >= 10) {
+      insights.push({
+        id: 'delta_up',
+        icon: 'Zap',
+        tone: 'rose',
+        title: `Chi tiêu tăng ${absDelta}% so với ${periodWord}`,
+        detail: `Tăng thêm ${formatCompactVND(summary.totalExpense - summary.prevExpense)}, nên rà soát lại các khoản lớn.`,
+      });
+    }
+  }
+
+  // 3. Peak spending day in period
+  const byDay = new Map<string, number>();
+  for (const tx of periodTxs) {
+    if (tx.type === 'expense') {
+      byDay.set(tx.date, (byDay.get(tx.date) || 0) + tx.amount);
+    }
+  }
+  let peakDate = '';
+  let peakAmount = 0;
+  for (const [d, amt] of byDay.entries()) {
+    if (amt > peakAmount) {
+      peakAmount = amt;
+      peakDate = d;
+    }
+  }
+  if (peakDate && byDay.size > 1) {
+    const d = parseDateKey(peakDate);
+    insights.push({
+      id: 'peak_day',
+      icon: 'Sparkles',
+      tone: 'violet',
+      title: `Ngày chi cao nhất: ${formatDayMonth(d)} (${formatCompactVND(peakAmount)})`,
+      detail: `Trung bình mỗi ngày gia đình chi khoảng ${formatVND(summary.dailyAverage)}.`,
+    });
+  } else if (timeframe === 'month' && monthlyBudget > 0 && summary.totalExpense > 0) {
+    const pct = Math.round((summary.totalExpense / monthlyBudget) * 100);
+    insights.push({
+      id: 'budget_pace',
+      icon: 'PiggyBank',
+      tone: pct > 90 ? 'rose' : 'sky',
+      title: `Đã dùng ${pct}% ngân sách tháng`,
+      detail:
+        pct <= 100
+          ? `Còn lại ${formatVND(monthlyBudget - summary.totalExpense)} trong hạn mức tháng.`
+          : `Đã vượt ngân sách tháng ${formatVND(summary.totalExpense - monthlyBudget)}.`,
+    });
+  } else if (memberBreakdown.length > 0 && memberBreakdown[0].amount > 0) {
+    const topMember = memberBreakdown[0];
+    insights.push({
+      id: 'top_member',
+      icon: topMember.member.icon,
+      tone: 'sky',
+      title: `${topMember.member.name} ghi nhận ${Math.round(topMember.percentage)}% chi tiêu`,
+      detail: `Tổng ${formatVND(topMember.amount)} trong kỳ đang xem.`,
+    });
+  }
+
+  return insights.slice(0, 3);
+}

@@ -101,13 +101,18 @@ Danh mục THU NHẬP (type="income"):
 ${incCats}
 
 Quy tắc bắt buộc:
-1. Hiểu mọi cách nói tiền Việt Nam: "4 chục"=40000, "5 chục rưỡi"=55000, "1 lít"=100000, "1 lít 2"=120000, "nửa lít"=50000, "3 xị"=300000, "1 củ rưỡi"=1500000, "2 triệu 3"=2300000, "85k"=85000, "hai trăm rưỡi"=250000.
+1. Hiểu chính xác mọi cách nói tiền Việt Nam (chú ý số 0):
+   - "chục" = 10.000: "4 chục"=40000, "5 chục rưỡi"=55000.
+   - "lít" và "xị" = 100.000 (TRĂM NGHÌN, KHÔNG phải triệu): "nửa lít"=50000, "1 lít"=100000, "1 lít 2"=120000, "1 lít 5"=150000, "2 lít"=200000, "3 xị"=300000, "5 xị"=500000.
+   - "củ" và "triệu" = 1.000.000: "1 củ rưỡi"=1500000, "1 củ 8"=1800000, "2 triệu 3"=2300000.
+   - "k / nghìn / ngàn" = 1.000: "85k"=85000, "hai trăm rưỡi"=250000.
 2. Nếu câu nói chứa NHIỀU khoản chi/thu riêng biệt (ví dụ "ăn sáng 60k, đổ xăng 100k, mua sách cho Mai Anh 85k"), hãy TÁCH thành nhiều phần tử trong mảng "items".
 3. Tự động suy luận categoryId chính xác theo ngữ cảnh đời sống Việt Nam (vd: "mua hoa tặng cô giáo" -> gifts; "cắt tóc/quần áo" -> shopping; "đóng quỹ lớp/học bơi/học đàn" -> kids; "sửa xe/thay nhớt/gửi xe/Grab" -> transport; "trả tiền ship/nhập hàng/quảng cáo" -> business_expense; "mua vàng/gửi tiết kiệm/chứng khoán" -> invest_expense; "bán hàng thu tiền" -> income + business).
 4. Suy luận đúng memberId nếu câu có nhắc tên (Cha/Bố/Bình -> cha_binh, Mẹ/Trang -> me_trang, Phát -> minh_phat, Mai Anh -> mai_anh). Nếu không nhắc, dùng "${activeMemberId}".
-5. Xử lý ngày tương đối theo ngày hôm nay (${today}): "hôm nay", "hôm qua", "hôm kia", hoặc "ngày DD/MM".
-6. Viết "note" ngắn gọn, tự nhiên, đúng chính tả tiếng Việt có dấu (bỏ số tiền và tên người nếu thừa).
-7. Trả về DUY NHẤT JSON hợp lệ (không giải thích, không markdown):
+5. Suy luận đúng paymentMethod: "chuyển khoản / banking / VietQR" -> "bank"; "ví điện tử / MoMo / ZaloPay / VNPay" -> "ewallet"; "thẻ / quẹt thẻ / Visa" -> "card"; "tiền mặt" hoặc không nhắc -> "cash".
+6. Xử lý ngày tương đối theo ngày hôm nay (${today}): "hôm nay", "hôm qua", "hôm kia", hoặc "ngày DD/MM".
+7. Viết "note" ngắn gọn, tự nhiên, đúng chính tả tiếng Việt có dấu (bỏ số tiền và tên người nếu thừa).
+8. Trả về DUY NHẤT JSON hợp lệ (không giải thích, không markdown):
 {"items":[{"type":"expense","amount":120000,"categoryId":"food","memberId":"${activeMemberId}","date":"${today}","paymentMethod":"cash","note":"Phở bò ăn sáng"}]}`;
 }
 

@@ -453,12 +453,17 @@ async function tryCloudflareAIVision(
   const timeout = window.setTimeout(() => controller.abort(), 22_000);
 
   try {
+    const expenseCats = categories
+      .filter((c) => c.type === 'expense')
+      .map((c) => ({ id: c.id, name: c.name }));
+
     const res = await fetch('/api/scan-receipt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         image: aiImageDataUrl,
         today: toDateKey(getToday()),
+        categories: expenseCats,
       }),
       signal: controller.signal,
     });

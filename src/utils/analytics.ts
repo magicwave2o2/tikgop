@@ -270,8 +270,8 @@ export function buildDailyMapForMonth(
 }
 
 /**
- * Automatically aggregates transactions into Day (Mon-Sun), Week (Weeks of Month),
- * or Month (Last 6 or 12 months) series for visual charts.
+ * Single-pass O(N) aggregator into Day (Mon-Sun), Week (Weeks of Month),
+ * or Month (Last 6 months) series for silky-smooth chart performance even with thousands of entries.
  */
 export function buildTrendSeries(
   transactions: Transaction[],
@@ -284,35 +284,39 @@ export function buildTrendSeries(
   if (mode === 'day') {
     const start = getStartOfWeek(anchor);
     const buckets: TrendBucket[] = [];
+    const byKey = new Map<string, TrendBucket>();
     for (let i = 0; i < 7; i++) {
       const d = addDays(start, i);
       const key = toDateKey(d);
-      const dayTxs = transactions.filter((tx) => tx.date === key);
-      let expense = 0;
-      let income = 0;
-      for (const tx of dayTxs) {
-        if (tx.type === 'expense') expense += tx.amount;
-        else income += tx.amount;
-      }
-      buckets.push({
+      const bucket: TrendBucket = {
         key,
         label: WEEKDAYS_SHORT_VI[i],
         subLabel: formatDayMonth(d),
-        expense,
-        income,
-        count: dayTxs.length,
+        expense: 0,
+        income: 0,
+        count: 0,
         isCurrent: key === todayKey,
         startDate: key,
         endDate: key,
-      });
+      };
+      buckets.push(bucket);
+      byKey.set(key, bucket);
+    }
+    for (const tx of transactions) {
+      const b = byKey.get(tx.date);
+      if (!b) continue;
+      if (tx.type === 'expense') b.expense += tx.amount;
+      else b.income += tx.amount;
+      b.count += 1;
     }
     return buckets;
   }
 
   if (mode === 'week') {
-    // Divide the selected month cleanly into calendar weeks (Mon-Sun slices inside month)
     const monthStart = getStartOfMonth(anchor);
     const monthEnd = getEndOfMonth(anchor);
+    const monthStartKey = toDateKey(monthStart);
+    const monthEndKey = toDateKey(monthEnd);
     const buckets: TrendBucket[] = [];
 
     let cursor = new Date(monthStart);
@@ -321,25 +325,16 @@ export function buildTrendSeries(
       const weekEndCandidate = getEndOfWeek(cursor);
       const sliceStart = new Date(cursor);
       const sliceEnd = weekEndCandidate > monthEnd ? new Date(monthEnd) : weekEndCandidate;
-
       const sKey = toDateKey(sliceStart);
       const eKey = toDateKey(sliceEnd);
-      const weekTxs = transactions.filter((tx) => tx.date >= sKey && tx.date <= eKey);
-
-      let expense = 0;
-      let income = 0;
-      for (const tx of weekTxs) {
-        if (tx.type === 'expense') expense += tx.amount;
-        else income += tx.amount;
-      }
 
       buckets.push({
         key: `${sKey}_${eKey}`,
         label: `Tuần ${weekIndex}`,
         subLabel: `${pad2(sliceStart.getDate())}–${pad2(sliceEnd.getDate())}/${pad2(sliceEnd.getMonth() + 1)}`,
-        expense,
-        income,
-        count: weekTxs.length,
+        expense: 0,
+        income: 0,
+        count: 0,
         isCurrent: todayKey >= sKey && todayKey <= eKey,
         startDate: sKey,
         endDate: eKey,
@@ -348,40 +343,52 @@ export function buildTrendSeries(
       cursor = addDays(sliceEnd, 1);
       weekIndex++;
     }
+
+    for (const tx of transactions) {
+      if (tx.date < monthStartKey || tx.date > monthEndKey) continue;
+      const b = buckets.find((w) => tx.date >= w.startDate && tx.date <= w.endDate);
+      if (!b) continue;
+      if (tx.type === 'expense') b.expense += tx.amount;
+      else b.income += tx.amount;
+      b.count += 1;
+    }
     return buckets;
   }
 
   // Month mode: 6 months ending at anchor's month
   const buckets: TrendBucket[] = [];
+  const byMonthKey = new Map<string, TrendBucket>();
   for (let i = 5; i >= 0; i--) {
     const mDate = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
     const mStart = getStartOfMonth(mDate);
     const mEnd = getEndOfMonth(mDate);
     const sKey = toDateKey(mStart);
     const eKey = toDateKey(mEnd);
-    const mTxs = transactions.filter((tx) => tx.date >= sKey && tx.date <= eKey);
-
-    let expense = 0;
-    let income = 0;
-    for (const tx of mTxs) {
-      if (tx.type === 'expense') expense += tx.amount;
-      else income += tx.amount;
-    }
-
+    const mKey = `${mDate.getFullYear()}-${pad2(mDate.getMonth() + 1)}`;
     const isCurrent =
       mDate.getFullYear() === today.getFullYear() && mDate.getMonth() === today.getMonth();
 
-    buckets.push({
-      key: `${mDate.getFullYear()}-${pad2(mDate.getMonth() + 1)}`,
+    const bucket: TrendBucket = {
+      key: mKey,
       label: `T${mDate.getMonth() + 1}`,
       subLabel: `Tháng ${mDate.getMonth() + 1}/${mDate.getFullYear()}`,
-      expense,
-      income,
-      count: mTxs.length,
+      expense: 0,
+      income: 0,
+      count: 0,
       isCurrent,
       startDate: sKey,
       endDate: eKey,
-    });
+    };
+    buckets.push(bucket);
+    byMonthKey.set(mKey, bucket);
+  }
+
+  for (const tx of transactions) {
+    const b = byMonthKey.get(tx.date.slice(0, 7));
+    if (!b) continue;
+    if (tx.type === 'expense') b.expense += tx.amount;
+    else b.income += tx.amount;
+    b.count += 1;
   }
   return buckets;
 }

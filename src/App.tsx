@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import {
   BarChart3,
   CalendarClock,
@@ -8,6 +8,7 @@ import {
   Mic,
   Moon,
   Plus,
+  RefreshCw,
   RotateCcw,
   ScanLine,
   Settings2,
@@ -17,16 +18,28 @@ import {
 } from 'lucide-react';
 import { DynamicIcon } from './components/IconRenderer';
 import { MemberOnboarding } from './components/MemberOnboarding';
-import { ReceiptScannerModal } from './components/ReceiptScannerModal';
 import { TransactionModal } from './components/TransactionModal';
-import { VoiceInputModal } from './components/VoiceInputModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { FinanceProvider, useFinance } from './store/useFinanceStore';
 import type { AppTab, Transaction, TransactionDraft } from './types/finance';
-import { AnalyticsView } from './views/AnalyticsView';
-import { HistoryView } from './views/HistoryView';
 import { OverviewView } from './views/OverviewView';
-import { SettingsView } from './views/SettingsView';
+
+// Lazy-load secondary views & heavy camera/voice modals for blazing fast initial FCP
+const HistoryView = lazy(() =>
+  import('./views/HistoryView').then((m) => ({ default: m.HistoryView })),
+);
+const AnalyticsView = lazy(() =>
+  import('./views/AnalyticsView').then((m) => ({ default: m.AnalyticsView })),
+);
+const SettingsView = lazy(() =>
+  import('./views/SettingsView').then((m) => ({ default: m.SettingsView })),
+);
+const ReceiptScannerModal = lazy(() =>
+  import('./components/ReceiptScannerModal').then((m) => ({ default: m.ReceiptScannerModal })),
+);
+const VoiceInputModal = lazy(() =>
+  import('./components/VoiceInputModal').then((m) => ({ default: m.VoiceInputModal })),
+);
 
 const NAV_ITEMS: Array<{ id: AppTab; label: string; icon: typeof Home }> = [
   { id: 'overview', label: 'Tổng quan', icon: Home },
@@ -34,6 +47,17 @@ const NAV_ITEMS: Array<{ id: AppTab; label: string; icon: typeof Home }> = [
   { id: 'analytics', label: 'Phân tích', icon: BarChart3 },
   { id: 'settings', label: 'Gia đình', icon: Settings2 },
 ];
+
+const ViewFallback: React.FC = () => (
+  <div className="space-y-4 animate-pulse">
+    <div className="h-12 w-56 rounded-2xl bg-slate-200/70 dark:bg-slate-800/70" />
+    <div className="h-44 rounded-3xl bg-slate-200/60 dark:bg-slate-800/60" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="h-48 rounded-3xl bg-slate-200/60 dark:bg-slate-800/60" />
+      <div className="h-48 rounded-3xl bg-slate-200/60 dark:bg-slate-800/60" />
+    </div>
+  </div>
+);
 
 const AppShell: React.FC = () => {
   const {
@@ -72,6 +96,19 @@ const AppShell: React.FC = () => {
   const [draftTx, setDraftTx] = useState<TransactionDraft | null>(null);
   const [defaultAddDate, setDefaultAddDate] = useState<string | undefined>(undefined);
   const [pendingCategoryFilter, setPendingCategoryFilter] = useState<string | null>(null);
+  const [swUpdateHandler, setSwUpdateHandler] = useState<(() => void) | null>(null);
+
+  // Listen for new PWA version ready event
+  useEffect(() => {
+    const onSwUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{ applyUpdate?: () => void }>).detail;
+      if (detail?.applyUpdate) {
+        setSwUpdateHandler(() => detail.applyUpdate!);
+      }
+    };
+    window.addEventListener('tikgop:sw-update', onSwUpdate);
+    return () => window.removeEventListener('tikgop:sw-update', onSwUpdate);
+  }, []);
 
   // Desktop keyboard shortcut: press 'n' outside inputs to quick-add
   useEffect(() => {
@@ -131,7 +168,6 @@ const AppShell: React.FC = () => {
     <div className="min-h-dvh flex flex-col lg:flex-row">
       {/* Desktop Sidebar Navigation */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:left-0 bg-white dark:bg-[#141923] border-r border-slate-200/70 dark:border-slate-800/80 px-4 py-6 z-30">
-        {/* Brand */}
         <div className="flex items-center gap-3 px-2 mb-6">
           <img
             src="/favicon.svg"
@@ -148,7 +184,6 @@ const AppShell: React.FC = () => {
           </div>
         </div>
 
-        {/* Primary Add CTA + Smart Scan & Voice row */}
         <div className="space-y-2 mb-6">
           <motion.button
             type="button"
@@ -187,7 +222,6 @@ const AppShell: React.FC = () => {
           </div>
         </div>
 
-        {/* Nav Links */}
         <nav className="flex-1 space-y-1.5">
           {NAV_ITEMS.map((item) => {
             const active = activeTab === item.id;
@@ -217,7 +251,6 @@ const AppShell: React.FC = () => {
           })}
         </nav>
 
-        {/* Active Family Member Badge & Footer Actions */}
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
           <button
             type="button"
@@ -315,6 +348,7 @@ const AppShell: React.FC = () => {
                   whileTap={{ scale: 0.92 }}
                   onClick={() => void promptInstall()}
                   className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-sm shadow-emerald-500/25 cursor-pointer"
+                  aria-label="Cài đặt PWA"
                 >
                   <Download size={13} />
                 </motion.button>
@@ -335,6 +369,30 @@ const AppShell: React.FC = () => {
 
         {/* Active View Stage */}
         <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-28 lg:pb-12">
+          {/* Non-intrusive PWA New Version Update Pill */}
+          <AnimatePresence>
+            {swUpdateHandler && (
+              <motion.div
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                className="mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-lg shadow-emerald-600/25"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <RefreshCw size={14} />
+                  <span>Đã có phiên bản TíchGóp mới!</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={swUpdateHandler}
+                  className="px-3 py-1 rounded-xl bg-white text-emerald-700 font-extrabold cursor-pointer"
+                >
+                  Cập nhật ngay
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -343,35 +401,37 @@ const AppShell: React.FC = () => {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-              {activeTab === 'overview' && (
-                <OverviewView
-                  onEditTransaction={openEditTx}
-                  onNavigateTab={handleNavigateTab}
-                  onQuickAdd={() => openQuickAdd()}
-                  onOpenReceiptScan={() => setReceiptOpen(true)}
-                  onOpenVoiceInput={() => setVoiceOpen(true)}
-                />
-              )}
-              {activeTab === 'history' && (
-                <HistoryView
-                  initialCategoryFilter={pendingCategoryFilter}
-                  onClearInitialCategory={() => setPendingCategoryFilter(null)}
-                  onEditTransaction={openEditTx}
-                  onQuickAddForDate={(dateKey) => openQuickAdd(dateKey)}
-                />
-              )}
-              {activeTab === 'analytics' && (
-                <AnalyticsView
-                  onSelectCategoryInHistory={(catId) => handleNavigateTab('history', catId)}
-                />
-              )}
-              {activeTab === 'settings' && <SettingsView />}
+              <Suspense fallback={<ViewFallback />}>
+                {activeTab === 'overview' && (
+                  <OverviewView
+                    onEditTransaction={openEditTx}
+                    onNavigateTab={handleNavigateTab}
+                    onQuickAdd={() => openQuickAdd()}
+                    onOpenReceiptScan={() => setReceiptOpen(true)}
+                    onOpenVoiceInput={() => setVoiceOpen(true)}
+                  />
+                )}
+                {activeTab === 'history' && (
+                  <HistoryView
+                    initialCategoryFilter={pendingCategoryFilter}
+                    onClearInitialCategory={() => setPendingCategoryFilter(null)}
+                    onEditTransaction={openEditTx}
+                    onQuickAddForDate={(dateKey) => openQuickAdd(dateKey)}
+                  />
+                )}
+                {activeTab === 'analytics' && (
+                  <AnalyticsView
+                    onSelectCategoryInHistory={(catId) => handleNavigateTab('history', catId)}
+                  />
+                )}
+                {activeTab === 'settings' && <SettingsView />}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </main>
       </div>
 
-      {/* Mobile Glass Bottom Navigation Bar with Floating Center '+' FAB */}
+      {/* Mobile Glass Bottom Navigation Bar */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 glass-bar pb-safe">
         <div className="max-w-lg mx-auto px-2 h-16 grid grid-cols-5 items-center">
           {NAV_ITEMS.slice(0, 2).map((item) => {
@@ -405,7 +465,6 @@ const AppShell: React.FC = () => {
             );
           })}
 
-          {/* Center Floating Quick-Add Button */}
           <div className="flex justify-center">
             <motion.button
               type="button"
@@ -452,7 +511,7 @@ const AppShell: React.FC = () => {
         </div>
       </nav>
 
-      {/* Quick Add / Edit Bottom Sheet Modal */}
+      {/* Modals (Scanner & Voice lazy-loaded only when opened) */}
       <TransactionModal
         open={modalOpen}
         editingTx={editingTx}
@@ -467,19 +526,25 @@ const AppShell: React.FC = () => {
         onOpenVoiceInput={() => setVoiceOpen(true)}
       />
 
-      {/* Smart Receipt Camera / OCR Scanner Modal */}
-      <ReceiptScannerModal
-        open={receiptOpen}
-        onClose={() => setReceiptOpen(false)}
-        onEditDraft={openDraftInModal}
-      />
+      {receiptOpen && (
+        <Suspense fallback={null}>
+          <ReceiptScannerModal
+            open={receiptOpen}
+            onClose={() => setReceiptOpen(false)}
+            onEditDraft={openDraftInModal}
+          />
+        </Suspense>
+      )}
 
-      {/* Vietnamese Voice Expense Input Modal */}
-      <VoiceInputModal
-        open={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
-        onEditDraft={openDraftInModal}
-      />
+      {voiceOpen && (
+        <Suspense fallback={null}>
+          <VoiceInputModal
+            open={voiceOpen}
+            onClose={() => setVoiceOpen(false)}
+            onEditDraft={openDraftInModal}
+          />
+        </Suspense>
+      )}
 
       {/* Floating Undo / Feedback Toast */}
       <AnimatePresence>
@@ -519,9 +584,11 @@ const AppShell: React.FC = () => {
 
 export function App() {
   return (
-    <FinanceProvider>
-      <AppShell />
-    </FinanceProvider>
+    <MotionConfig reducedMotion="user">
+      <FinanceProvider>
+        <AppShell />
+      </FinanceProvider>
+    </MotionConfig>
   );
 }
 

@@ -43,6 +43,7 @@ export const SettingsView: React.FC = () => {
     addMember,
     deleteMember,
     addCategory,
+    updateCategoryBudget,
     deleteCategory,
     exportJSON,
     exportCSV,
@@ -66,12 +67,14 @@ export const SettingsView: React.FC = () => {
   const [memberIcon, setMemberIcon] = useState<IconName>('UserRound');
   const [memberColor, setMemberColor] = useState('#3B82F6');
 
-  // Add Category form
+  // Add Category form & inline budget edit
   const [showCatForm, setShowCatForm] = useState(false);
   const [catName, setCatName] = useState('');
   const [catType, setCatType] = useState<TransactionType>('expense');
   const [catIcon, setCatIcon] = useState<IconName>('Coffee');
   const [catColor, setCatColor] = useState('#F97316');
+  const [editingBudgetCatId, setEditingBudgetCatId] = useState<string | null>(null);
+  const [catBudgetDraft, setCatBudgetDraft] = useState('');
 
   // Safe inline confirm for clearing data
   const [confirmClear, setConfirmClear] = useState(false);
@@ -675,34 +678,89 @@ export const SettingsView: React.FC = () => {
               </form>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
-              {state.categories.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-50/80 dark:bg-slate-800/45"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <CategoryIconBadge icon={cat.icon} color={cat.color} size="sm" />
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                        {cat.shortName}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto pr-1">
+              {state.categories.map((cat) => {
+                const isEditingBudget = editingBudgetCatId === cat.id;
+                return (
+                  <div
+                    key={cat.id}
+                    className="p-2.5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/45 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <CategoryIconBadge icon={cat.icon} color={cat.color} size="sm" />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                            {cat.shortName}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            {cat.type === 'expense'
+                              ? cat.budget
+                                ? `Hạn mức: ${formatCompactVND(cat.budget)}/tháng`
+                                : 'Chi tiêu • Chưa đặt hạn mức'
+                              : 'Thu nhập'}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-[10px] text-slate-400">
-                        {cat.type === 'expense' ? 'Chi' : 'Thu'}
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {cat.type === 'expense' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isEditingBudget) {
+                                setEditingBudgetCatId(null);
+                              } else {
+                                setEditingBudgetCatId(cat.id);
+                                setCatBudgetDraft(
+                                  cat.budget ? formatRawAmount(String(cat.budget)) : '',
+                                );
+                              }
+                            }}
+                            className="px-2 py-1 rounded-lg text-[10px] font-bold bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 cursor-pointer"
+                          >
+                            {isEditingBudget ? 'Đóng' : 'Hạn mức'}
+                          </button>
+                        )}
+                        {cat.isCustom && (
+                          <button
+                            type="button"
+                            onClick={() => deleteCategory(cat.id)}
+                            className="p-1 text-slate-400 hover:text-rose-500 cursor-pointer"
+                            aria-label={`Xóa ${cat.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     </div>
+
+                    {isEditingBudget && (
+                      <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Hạn mức tháng (VD: 3.000.000)"
+                          value={catBudgetDraft}
+                          onChange={(e) => setCatBudgetDraft(formatRawAmount(e.target.value))}
+                          className="flex-1 min-w-0 px-2.5 py-1.5 rounded-xl text-xs font-bold tabular-nums bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-emerald-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = parseRawAmount(catBudgetDraft);
+                            updateCategoryBudget(cat.id, val > 0 ? val : undefined);
+                            setEditingBudgetCatId(null);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-emerald-500 text-white text-[11px] font-bold cursor-pointer"
+                        >
+                          Lưu
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {cat.isCustom && (
-                    <button
-                      type="button"
-                      onClick={() => deleteCategory(cat.id)}
-                      className="p-1 text-slate-400 hover:text-rose-500 shrink-0 cursor-pointer"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </div>

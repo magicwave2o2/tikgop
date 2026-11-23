@@ -5,7 +5,11 @@ import {
   DEFAULT_SETTINGS,
   generateSampleTransactions,
 } from '../data/defaults';
-import { saveReceiptImage } from '../utils/receiptStorage';
+import {
+  clearAllReceiptImages,
+  deleteReceiptImage,
+  saveReceiptImage,
+} from '../utils/receiptStorage';
 import type {
   Category,
   FamilyMember,
@@ -214,16 +218,46 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [resolvedTheme]);
 
-  // Auto-dismiss toast after 4.5s
+  // Auto-dismiss toast after 4.5s (and clean up orphaned receipt image if delete wasn't undone)
   useEffect(() => {
     if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), 4500);
+    const timer = window.setTimeout(() => {
+      if (toast.deletedTx?.receiptImage) {
+        void deleteReceiptImage(toast.deletedTx.receiptImage);
+      }
+      setToast(null);
+    }, 4500);
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  const dismissToast = useCallback(() => setToast(null), []);
+  // Sync changes automatically when TíchGóp is open across multiple browser tabs
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        setState(loadInitialState());
+      } else if (e.key === DEVICE_MEMBER_KEY && e.newValue) {
+        setHasSelectedDeviceMember(true);
+        setState((prev) =>
+          prev.members.some((m) => m.id === e.newValue)
+            ? { ...prev, settings: { ...prev.settings, activeMemberId: e.newValue! } }
+            : prev,
+        );
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
-  // Migrate any legacy inline base64 receipt images out of localStorage into IndexedDB
+  const dismissToast = useCallback(() => {
+    setToast((current) => {
+      if (current?.deletedTx?.receiptImage) {
+        void deleteReceiptImage(current.deletedTx.receiptImage);
+      }
+      return null;
+    });
+  }, []);
+
+  // One-time mount migration for any legacy inline base64 receipt images into IndexedDB
   useEffect(() => {
     const legacyWithBase64 = state.transactions.filter(
       (tx) => tx.receiptImage && tx.receiptImage.startsWith('data:image/'),
@@ -251,7 +285,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       cancelled = true;
     };
-  }, [state.transactions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addTransaction = useCallback((input: Omit<Transaction, 'id' | 'createdAt'>) => {
     const created: Transaction = {
@@ -440,18 +475,28 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       ewallet: 'Ví điện tử',
       card: 'Thẻ tín dụng',
     };
-    const header = ['Ngày', 'Giờ', 'Loại', 'Danh mục', 'Số tiền (VND)', 'Thành viên', 'Thanh toán', 'Ghi chú'];
+    const csvCell = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const header = [
+      'Ngày',
+      'Giờ',
+      'Loại',
+      'Danh mục',
+      'Số tiền (VND)',
+      'Thành viên',
+      'Thanh toán',
+      'Ghi chú',
+    ].map(csvCell);
     const rows = [...state.transactions]
       .sort((a, b) => b.date.localeCompare(a.date))
       .map((tx) => [
-        tx.date,
-        tx.time,
-        tx.type === 'expense' ? 'Chi tiêu' : 'Thu nhập',
-        catMap.get(tx.categoryId) || tx.categoryId,
+        csvCell(tx.date),
+        csvCell(tx.time),
+        csvCell(tx.type === 'expense' ? 'Chi tiêu' : 'Thu nhập'),
+        csvCell(catMap.get(tx.categoryId) || tx.categoryId),
         tx.type === 'expense' ? -tx.amount : tx.amount,
-        memMap.get(tx.memberId) || tx.memberId,
-        payMap[tx.paymentMethod] || tx.paymentMethod,
-        `"${(tx.note || '').replace(/"/g, '""')}"`,
+        csvCell(memMap.get(tx.memberId) || tx.memberId),
+        csvCell(payMap[tx.paymentMethod] || tx.paymentMethod),
+        csvCell(tx.note || ''),
       ]);
     return '\uFEFF' + [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
   }, [state]);
@@ -493,6 +538,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const clearAllTransactions = useCallback(() => {
+    void clearAllReceiptImages();
     setState((prev) => ({
       ...prev,
       transactions: [],

@@ -19,7 +19,6 @@ import {
   aggregateByCategory,
   aggregateByMember,
   buildTrendSeries,
-  filterTransactionsByRange,
   generateSmartInsights,
 } from '../utils/analytics';
 import {
@@ -58,11 +57,6 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   const today = useMemo(() => getToday(), []);
 
-  // Determine the overarching period range corresponding to trendMode
-  // day -> shows 7 days of anchor's week
-  // week -> shows weeks of anchor's month
-  // month -> shows 6 months ending at anchor's month
-  const activeTimeframe = trendMode === 'day' ? 'week' : trendMode === 'week' ? 'month' : 'year';
   const periodRange = useMemo(
     () => getPeriodRange(trendMode === 'day' ? 'week' : 'month', anchorDate),
     [trendMode, anchorDate],
@@ -152,10 +146,6 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       : trendMode === 'week'
         ? `Các tuần • Tháng ${anchorDate.getMonth() + 1}/${anchorDate.getFullYear()}`
         : `6 tháng đến T${anchorDate.getMonth() + 1}/${anchorDate.getFullYear()}`;
-
-  // Suppress unused import warning cleanly while keeping period calculation clear
-  void activeTimeframe;
-  void filterTransactionsByRange;
 
   const maxBucketExpense = Math.max(1, ...buckets.map((b) => b.expense));
 

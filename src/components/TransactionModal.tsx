@@ -1038,8 +1038,19 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
             </form>
 
-            {/* Pinned Sticky Save Footer with "Lưu & tiếp" */}
-            <div className="px-4 sm:px-5 pt-2.5 pb-safe bg-white/95 dark:bg-[#141923]/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800/80">
+            {/* Pinned Sticky Save Footer with "Lưu & tiếp" + Smart <1000₫ typo safeguard */}
+            <div className="px-4 sm:px-5 pt-2.5 pb-safe bg-white/95 dark:bg-[#141923]/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+              {numericPreview > 0 && numericPreview < 1_000 && (
+                <button
+                  type="button"
+                  onClick={handleMultiplyThousand}
+                  className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/12 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-xs font-bold cursor-pointer"
+                >
+                  <span>Ý bạn là {formatVND(numericPreview * 1_000)}?</span>
+                  <span className="underline">Chạm để đổi ×1.000</span>
+                </button>
+              )}
+
               <div className="flex items-center gap-2">
                 {!editingTx && (
                   <motion.button

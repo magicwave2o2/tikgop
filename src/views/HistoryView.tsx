@@ -51,6 +51,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const [typeFilter, setTypeFilter] = useState<'all' | TransactionType>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [memberFilter, setMemberFilter] = useState<string>('all');
+  const [visibleGroupsCount, setVisibleGroupsCount] = useState<number>(15);
+
+  useEffect(() => {
+    setVisibleGroupsCount(15);
+  }, [query, typeFilter, categoryFilter, memberFilter]);
 
   useEffect(() => {
     if (initialCategoryFilter) {
@@ -614,7 +619,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               </div>
             ) : (
               <div className="space-y-3.5">
-                {groupedList.map((group) => (
+                {groupedList.slice(0, visibleGroupsCount).map((group) => (
                   <section key={group.dateKey} className="card-surface rounded-3xl p-4">
                     {/* Auto-subtotal Date Header */}
                     <div className="flex items-center justify-between pb-2.5 mb-1 border-b border-slate-100 dark:border-slate-800/80">
@@ -655,6 +660,16 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     </div>
                   </section>
                 ))}
+
+                {groupedList.length > visibleGroupsCount && (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleGroupsCount((n) => n + 20)}
+                    className="w-full py-3 rounded-2xl card-surface text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/8 transition-colors cursor-pointer"
+                  >
+                    Xem thêm {groupedList.length - visibleGroupsCount} ngày cũ hơn
+                  </button>
+                )}
               </div>
             )}
           </motion.div>

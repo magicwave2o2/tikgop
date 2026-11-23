@@ -88,3 +88,17 @@ export async function deleteReceiptImage(ref?: string): Promise<void> {
     // ignore cleanup failures
   }
 }
+
+export async function clearAllReceiptImages(): Promise<void> {
+  try {
+    const db = await openReceiptDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // ignore cleanup failures
+  }
+}

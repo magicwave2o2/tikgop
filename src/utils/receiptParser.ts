@@ -39,26 +39,30 @@ export function generateDemoReceiptImage(preset: DemoReceiptPreset): string {
   const dateStr = `${pad2(today.getDate())}/${pad2(today.getMonth() + 1)}/${today.getFullYear()}`;
 
   if (preset === 'bank') {
-    // Realistic Vietnamese Banking Transfer Screenshot (Vietcombank / VietQR style)
-    ctx.fillStyle = '#f8fafc';
+    // Realistic Vietnamese Banking Transfer Receipt (clean white card with crisp high-contrast amount)
+    ctx.fillStyle = '#f1f5f9';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = '#059669';
-    ctx.fillRect(0, 0, canvas.width, 220);
-
     ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText('CHUYEN TIEN THANH CONG', canvas.width / 2, 95);
-
-    ctx.font = 'bold 48px sans-serif';
-    ctx.fillText('350.000 VND', canvas.width / 2, 168);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(36, 250, canvas.width - 72, 470);
-    ctx.strokeStyle = '#e2e8f0';
+    ctx.fillRect(28, 36, canvas.width - 56, 748);
+    ctx.strokeStyle = '#cbd5e1';
     ctx.lineWidth = 2;
-    ctx.strokeRect(36, 250, canvas.width - 72, 470);
+    ctx.strokeRect(28, 36, canvas.width - 56, 748);
+
+    ctx.fillStyle = '#059669';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 26px sans-serif';
+    ctx.fillText('CHUYEN TIEN THANH CONG', canvas.width / 2, 108);
+
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 46px sans-serif';
+    ctx.fillText('SO TIEN: 350.000 VND', canvas.width / 2, 182);
+
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.beginPath();
+    ctx.moveTo(60, 224);
+    ctx.lineTo(canvas.width - 60, 224);
+    ctx.stroke();
 
     const rows: Array<[string, string]> = [
       ['Thoi gian:', `${dateStr} 17:45`],
@@ -68,19 +72,19 @@ export function generateDemoReceiptImage(preset: DemoReceiptPreset): string {
       ['Phi giao dich:', '0 VND'],
     ];
 
-    let y = 320;
+    let y = 286;
     for (const [k, v] of rows) {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#64748b';
       ctx.font = '21px sans-serif';
       ctx.fillText(k, 64, y);
       ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 22px sans-serif';
+      ctx.font = 'bold 23px sans-serif';
       ctx.fillText(v, 64, y + 34);
-      y += 86;
+      y += 92;
     }
 
-    return canvas.toDataURL('image/jpeg', 0.9);
+    return canvas.toDataURL('image/jpeg', 0.92);
   }
 
   // Clean thermal paper white background
@@ -396,6 +400,10 @@ export function parseReceiptText(
         !/^[-=*_.\s\d:/]+$/.test(l) &&
         !norm.includes('hoa don') &&
         !norm.includes('chuyen tien thanh cong') &&
+        !norm.includes('so tien') &&
+        !norm.includes('nguoi nhan') &&
+        !norm.includes('ngan hang') &&
+        !norm.includes('noi dung') &&
         !norm.includes('ngay') &&
         !norm.includes('gio') &&
         !norm.includes('thoi gian')

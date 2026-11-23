@@ -286,6 +286,13 @@ export function detectTransactionType(rawText: string): TransactionType {
   return 'expense';
 }
 
+function matchesKeyword(normText: string, keyword: string): boolean {
+  const kw = keyword.trim();
+  if (!kw) return false;
+  const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`).test(normText);
+}
+
 export function detectCategoryFromText(
   rawText: string,
   type: TransactionType,
@@ -295,7 +302,7 @@ export function detectCategoryFromText(
   const list = type === 'income' ? INCOME_KEYWORDS : EXPENSE_KEYWORDS;
 
   for (const rule of list) {
-    if (rule.keywords.some((kw) => norm.includes(kw))) {
+    if (rule.keywords.some((kw) => matchesKeyword(norm, kw))) {
       if (categories.some((c) => c.id === rule.categoryId && c.type === type)) {
         return rule.categoryId;
       }
@@ -306,7 +313,7 @@ export function detectCategoryFromText(
   for (const cat of categories) {
     if (cat.type !== type) continue;
     const catNorm = normalizeVietnamese(cat.name);
-    if (catNorm.length >= 3 && norm.includes(catNorm)) {
+    if (catNorm.length >= 3 && matchesKeyword(norm, catNorm)) {
       return cat.id;
     }
   }

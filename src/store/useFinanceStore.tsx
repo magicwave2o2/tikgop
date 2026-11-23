@@ -15,6 +15,7 @@ import type {
 
 const STORAGE_KEY = 'tikgop_family_finance_v2';
 const LEGACY_STORAGE_KEY = 'tikgop_family_finance_v1';
+const DEVICE_MEMBER_KEY = 'tikgop_device_member_id';
 
 interface UndoToastState {
   message: string;
@@ -24,11 +25,12 @@ interface UndoToastState {
 interface FinanceContextValue {
   state: FinanceState;
   activeMember: FamilyMember;
+  hasSelectedDeviceMember: boolean;
   resolvedTheme: 'light' | 'dark';
   toast: UndoToastState | null;
   dismissToast: () => void;
   undoDelete: () => void;
-  setActiveMember: (memberId: string) => void;
+  setActiveMember: (memberId: string, silent?: boolean) => void;
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt'>) => Transaction;
   updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => void;
   deleteTransaction: (id: string) => void;
@@ -93,8 +95,30 @@ function loadInitialState(): FinanceState {
   };
 }
 
+function getSavedDeviceMemberId(): string | null {
+  try {
+    return localStorage.getItem(DEVICE_MEMBER_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<FinanceState>(loadInitialState);
+  const [state, setState] = useState<FinanceState>(() => {
+    const base = loadInitialState();
+    const deviceMemberId = getSavedDeviceMemberId();
+    if (deviceMemberId && base.members.some((m) => m.id === deviceMemberId)) {
+      return {
+        ...base,
+        settings: { ...base.settings, activeMemberId: deviceMemberId },
+      };
+    }
+    return base;
+  });
+  const [hasSelectedDeviceMember, setHasSelectedDeviceMember] = useState<boolean>(() => {
+    const deviceId = getSavedDeviceMemberId();
+    return Boolean(deviceId);
+  });
   const [toast, setToast] = useState<UndoToastState | null>(null);
   const [systemDark, setSystemDark] = useState<boolean>(() =>
     typeof window !== 'undefined'
@@ -252,11 +276,19 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
   }, [state.members, state.settings.activeMemberId]);
 
-  const setActiveMember = useCallback((memberId: string) => {
+  const setActiveMember = useCallback((memberId: string, silent = false) => {
+    try {
+      localStorage.setItem(DEVICE_MEMBER_KEY, memberId);
+    } catch {
+      // Ignore storage quota errors
+    }
+    setHasSelectedDeviceMember(true);
     setState((prev) => {
       const target = prev.members.find((m) => m.id === memberId);
       if (!target) return prev;
-      setToast({ message: `Đang xem với tư cách ${target.name} • Xem toàn bộ chi tiêu gia đình` });
+      if (!silent) {
+        setToast({ message: `Đã ghi nhớ thiết bị cho ${target.name}` });
+      }
       return {
         ...prev,
         settings: { ...prev.settings, activeMemberId: memberId },
@@ -368,6 +400,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     () => ({
       state,
       activeMember,
+      hasSelectedDeviceMember,
       resolvedTheme,
       toast,
       dismissToast,
@@ -391,6 +424,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [
       state,
       activeMember,
+      hasSelectedDeviceMember,
       resolvedTheme,
       toast,
       dismissToast,

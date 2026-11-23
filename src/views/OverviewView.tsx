@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Eye,
   Mic,
   PiggyBank,
   PlusCircle,
@@ -67,7 +66,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   onOpenReceiptScan,
   onOpenVoiceInput,
 }) => {
-  const { state, activeMember, setActiveMember, deleteTransaction } = useFinance();
+  const { state, deleteTransaction } = useFinance();
   const [timeframe, setTimeframe] = useState<Timeframe>('month');
   const [anchorDate, setAnchorDate] = useState<Date>(() => getToday());
   /** 'all' = shared total for all 4 family members (default so everyone sees the whole family) */
@@ -183,64 +182,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   return (
     <div className="space-y-5">
-      {/* Shared 4-Member Family Bar: Every member sees the whole family's expenses */}
-      <section className="card-surface rounded-3xl p-3.5 sm:p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className="w-9 h-9 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-sm"
-              style={{ backgroundColor: activeMember.color }}
-            >
-              <DynamicIcon name={activeMember.icon} size={18} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
-                  Xin chào, {activeMember.name}
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
-                  <Eye size={10} />
-                  {viewScope === 'all'
-                    ? `Xem chung cả ${state.members.length} thành viên`
-                    : `Đang lọc: ${viewingMemberObj?.name}`}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                Chạm tên thành viên để đổi người dùng • Ai cũng xem được tổng chi tiêu cả nhà
-              </p>
-            </div>
-          </div>
-
-          {/* 4-Member Profile Switcher Pills (2x2 clean grid on mobile so all 4 are visible at once) */}
-          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5">
-            {state.members.map((m) => {
-              const isMe = m.id === activeMember.id;
-              return (
-                <motion.button
-                  key={m.id}
-                  type="button"
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() => setActiveMember(m.id)}
-                  className={`inline-flex items-center justify-center sm:justify-start gap-1.5 px-2.5 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                    isMe
-                      ? 'text-white border-transparent shadow-sm'
-                      : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700 hover:border-slate-300'
-                  }`}
-                  style={isMe ? { backgroundColor: m.color } : undefined}
-                >
-                  <DynamicIcon
-                    name={m.icon}
-                    size={13}
-                    style={!isMe ? { color: m.color } : undefined}
-                  />
-                  <span className="truncate">{m.name}</span>
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* Timeframe Segmented Control + Period Navigator */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="grid grid-cols-4 p-1 rounded-2xl bg-white dark:bg-[#141923] border border-slate-200/70 dark:border-slate-800 shadow-xs sm:w-72">

@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { DynamicIcon } from './components/IconRenderer';
+import { MemberOnboarding } from './components/MemberOnboarding';
 import { ReceiptScannerModal } from './components/ReceiptScannerModal';
 import { TransactionModal } from './components/TransactionModal';
 import { VoiceInputModal } from './components/VoiceInputModal';
@@ -35,8 +36,16 @@ const NAV_ITEMS: Array<{ id: AppTab; label: string; icon: typeof Home }> = [
 ];
 
 const AppShell: React.FC = () => {
-  const { state, activeMember, resolvedTheme, updateSettings, toast, dismissToast, undoDelete } =
-    useFinance();
+  const {
+    state,
+    activeMember,
+    hasSelectedDeviceMember,
+    resolvedTheme,
+    updateSettings,
+    toast,
+    dismissToast,
+    undoDelete,
+  } = useFinance();
   const { canInstall, isOnline, promptInstall } = usePWAInstall();
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
@@ -112,6 +121,11 @@ const AppShell: React.FC = () => {
   const toggleQuickTheme = () => {
     updateSettings({ theme: resolvedTheme === 'dark' ? 'light' : 'dark' });
   };
+
+  // First-time visit on this device: ask which family member is using the device once
+  if (!hasSelectedDeviceMember) {
+    return <MemberOnboarding />;
+  }
 
   return (
     <div className="min-h-dvh flex flex-col lg:flex-row">
@@ -269,7 +283,7 @@ const AppShell: React.FC = () => {
                   )}
                 </div>
                 <p className="text-[11px] font-medium text-slate-400 leading-tight truncate">
-                  {state.settings.familyName}
+                  {activeMember.name} • {state.settings.familyName}
                 </p>
               </div>
             </div>

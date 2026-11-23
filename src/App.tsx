@@ -170,9 +170,9 @@ const AppShell: React.FC = () => {
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:left-0 bg-white dark:bg-[#141923] border-r border-slate-200/70 dark:border-slate-800/80 px-4 py-6 z-30">
         <div className="flex items-center gap-3 px-2 mb-6">
           <img
-            src="/favicon.svg"
+            src="/logo.png"
             alt="TíchGóp"
-            className="w-10 h-10 rounded-2xl shadow-md shadow-emerald-500/20"
+            className="w-10 h-10 rounded-2xl bg-white border border-slate-200/80 dark:border-slate-700 object-cover shadow-md shadow-emerald-500/15"
           />
           <div className="min-w-0">
             <h1 className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">
@@ -299,9 +299,9 @@ const AppShell: React.FC = () => {
           <div className="max-w-3xl mx-auto px-4 h-15 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <img
-                src="/favicon.svg"
+                src="/logo.png"
                 alt="TíchGóp"
-                className="w-9 h-9 rounded-xl shadow-sm shadow-emerald-500/20 shrink-0"
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 dark:border-slate-700 object-cover shadow-sm shadow-emerald-500/15 shrink-0"
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">

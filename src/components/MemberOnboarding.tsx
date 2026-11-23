@@ -31,9 +31,9 @@ export const MemberOnboarding: React.FC = () => {
             initial={{ scale: 0.85, rotate: -6 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 320, damping: 20 }}
-            src="/favicon.svg"
+            src="/logo.png"
             alt="TíchGóp"
-            className="w-16 h-16 rounded-3xl shadow-xl shadow-emerald-500/25 mb-4"
+            className="w-20 h-20 rounded-3xl bg-white border border-slate-200/80 dark:border-slate-700 object-cover shadow-xl shadow-emerald-500/20 mb-4"
           />
           <span className="px-3 py-1 rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold">
             {state.settings.familyName}

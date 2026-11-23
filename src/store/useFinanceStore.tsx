@@ -87,19 +87,23 @@ function migrateCategoriesAndTransactions(
     migratedCats.splice(otherIdx >= 0 ? otherIdx : migratedCats.length, 0, businessDefault);
   }
 
-  const migratedTxs = (parsed.transactions || []).map((tx) => {
-    if (tx.categoryId === 'housing') return { ...tx, categoryId: 'invest_expense' };
-    if (tx.categoryId === 'pets') return { ...tx, categoryId: 'business_expense' };
-    return tx;
-  });
+  // Migrate v3 -> v4: clear pre-loaded sample/test history once so family starts completely clean
+  const isPreV4 = (parsed.version || 0) < 4;
+  const migratedTxs = isPreV4
+    ? []
+    : (parsed.transactions || []).map((tx) => {
+        if (tx.categoryId === 'housing') return { ...tx, categoryId: 'invest_expense' };
+        if (tx.categoryId === 'pets') return { ...tx, categoryId: 'business_expense' };
+        return tx;
+      });
 
   return {
-    version: 3,
+    version: 4,
     transactions: migratedTxs,
     categories: migratedCats,
     members,
     settings: mergedSettings,
-    hasSampleData: Boolean(parsed.hasSampleData),
+    hasSampleData: isPreV4 ? false : Boolean(parsed.hasSampleData),
   };
 }
 
@@ -130,12 +134,12 @@ function loadInitialState(): FinanceState {
   }
 
   return {
-    version: 3,
-    transactions: generateSampleTransactions(),
+    version: 4,
+    transactions: [],
     categories: DEFAULT_CATEGORIES,
     members: DEFAULT_MEMBERS,
     settings: DEFAULT_SETTINGS,
-    hasSampleData: true,
+    hasSampleData: false,
   };
 }
 

@@ -8,7 +8,6 @@ import {
   Monitor,
   Moon,
   Plus,
-  RefreshCw,
   Share,
   ShieldCheck,
   Smartphone,
@@ -48,7 +47,6 @@ export const SettingsView: React.FC = () => {
     exportJSON,
     exportCSV,
     importJSON,
-    loadSampleData,
     clearAllTransactions,
   } = useFinance();
 
@@ -327,7 +325,7 @@ export const SettingsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <motion.button
                 type="button"
                 whileTap={{ scale: 0.97 }}
@@ -376,16 +374,6 @@ export const SettingsView: React.FC = () => {
                 onChange={handleImportFile}
                 className="hidden"
               />
-
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.97 }}
-                onClick={loadSampleData}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-2xl bg-violet-500/12 text-violet-700 dark:text-violet-300 text-xs font-bold hover:bg-violet-500/20 transition-colors cursor-pointer"
-              >
-                <RefreshCw size={15} />
-                <span>Nạp dữ liệu mẫu</span>
-              </motion.button>
             </div>
 
             {importError && (

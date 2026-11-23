@@ -3,7 +3,6 @@ import {
   DEFAULT_CATEGORIES,
   DEFAULT_MEMBERS,
   DEFAULT_SETTINGS,
-  generateSampleTransactions,
 } from '../data/defaults';
 import {
   clearAllReceiptImages,
@@ -49,7 +48,6 @@ interface FinanceContextValue {
   exportJSON: () => string;
   exportCSV: () => string;
   importJSON: (raw: string) => { ok: boolean; error?: string };
-  loadSampleData: () => void;
   clearAllTransactions: () => void;
 }
 
@@ -93,9 +91,12 @@ function migrateCategoriesAndTransactions(
     migratedCats.splice(otherIdx >= 0 ? otherIdx : migratedCats.length, 0, businessDefault);
   }
 
-  // Migrate v3 -> v4: clear pre-loaded sample/test history once so family starts completely clean
-  const isPreV4 = (parsed.version || 0) < 4;
-  const migratedTxs = isPreV4
+  // Migrate pre-v5 -> v5: wipe any development/test history & receipt images once so family starts at 0 ₫
+  const isPreV5 = (parsed.version || 0) < 5;
+  if (isPreV5) {
+    void clearAllReceiptImages();
+  }
+  const migratedTxs = isPreV5
     ? []
     : (parsed.transactions || []).map((tx) => {
         if (tx.categoryId === 'housing') return { ...tx, categoryId: 'invest_expense' };
@@ -104,12 +105,12 @@ function migrateCategoriesAndTransactions(
       });
 
   return {
-    version: 4,
+    version: 5,
     transactions: migratedTxs,
     categories: migratedCats,
     members,
     settings: mergedSettings,
-    hasSampleData: isPreV4 ? false : Boolean(parsed.hasSampleData),
+    hasSampleData: false,
   };
 }
 
@@ -140,7 +141,7 @@ function loadInitialState(): FinanceState {
   }
 
   return {
-    version: 4,
+    version: 5,
     transactions: [],
     categories: DEFAULT_CATEGORIES,
     members: DEFAULT_MEMBERS,
@@ -508,7 +509,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return { ok: false, error: 'Tệp sao lưu không đúng định dạng TíchGóp.' };
       }
       setState({
-        version: 1,
+        version: 5,
         transactions: parsed.transactions,
         categories:
           Array.isArray(parsed.categories) && parsed.categories.length > 0
@@ -526,15 +527,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch {
       return { ok: false, error: 'Không thể đọc tệp JSON. Vui lòng kiểm tra lại.' };
     }
-  }, []);
-
-  const loadSampleData = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      transactions: generateSampleTransactions(),
-      hasSampleData: true,
-    }));
-    setToast({ message: 'Đã nạp bộ dữ liệu mẫu chi tiêu gia đình' });
   }, []);
 
   const clearAllTransactions = useCallback(() => {
@@ -570,7 +562,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       exportJSON,
       exportCSV,
       importJSON,
-      loadSampleData,
       clearAllTransactions,
     }),
     [
@@ -595,7 +586,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       exportJSON,
       exportCSV,
       importJSON,
-      loadSampleData,
       clearAllTransactions,
     ],
   );

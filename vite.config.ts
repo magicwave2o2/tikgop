@@ -21,8 +21,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      registerType: 'autoUpdate',
       manifest: {
         name: 'TíchGóp - Quản Lý Chi Tiêu Gia Đình',
         short_name: 'TíchGóp',
@@ -79,6 +78,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [

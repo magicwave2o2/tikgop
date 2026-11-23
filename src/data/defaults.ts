@@ -34,14 +34,14 @@ export const DEFAULT_CATEGORIES: Category[] = [
     quickNotes: ['Tiền điện tháng', 'Tiền nước sinh hoạt', 'Internet & Wifi', 'Phí quản lý nhà'],
   },
   {
-    id: 'housing',
-    name: 'Nhà cửa',
-    shortName: 'Nhà cửa',
+    id: 'invest_expense',
+    name: 'Đầu tư & Tích lũy',
+    shortName: 'Đầu tư',
     type: 'expense',
-    icon: 'Home',
+    icon: 'TrendingUp',
     color: '#14B8A6',
-    budget: 3500000,
-    quickNotes: ['Đồ gia dụng mới', 'Sửa chữa vật dụng', 'Chăm sóc nhà cửa', 'Đồ dùng phòng bếp'],
+    budget: 5000000,
+    quickNotes: ['Gửi tiết kiệm định kỳ', 'Mua vàng tích trữ', 'Chứng khoán / Quỹ ETF', 'Đầu tư dài hạn'],
   },
   {
     id: 'transport',
@@ -104,14 +104,14 @@ export const DEFAULT_CATEGORIES: Category[] = [
     quickNotes: ['Biếu ông bà nội ngoại', 'Quà sinh nhật', 'Mừng cưới', 'Thăm hỏi người thân'],
   },
   {
-    id: 'pets',
-    name: 'Thú cưng',
-    shortName: 'Thú cưng',
+    id: 'business_expense',
+    name: 'Kinh doanh',
+    shortName: 'Kinh doanh',
     type: 'expense',
-    icon: 'PawPrint',
-    color: '#84CC16',
-    budget: 800000,
-    quickNotes: ['Hạt & pate thú cưng', 'Tắm & cắt tỉa lông', 'Khám thú y'],
+    icon: 'Store',
+    color: '#2563EB',
+    budget: 5000000,
+    quickNotes: ['Nhập hàng kinh doanh', 'Chi phí vận chuyển', 'Quảng cáo & bán hàng', 'Đóng gói & vật tư'],
   },
   {
     id: 'other_expense',
@@ -332,7 +332,7 @@ export function generateSampleTransactions(referenceDate = new Date()): Transact
 
     // -5 days
     make(-5, '11:20', 'expense', 450000, 'grocery', 'me_trang', 'Thực phẩm tươi sống cho tuần mới', 'ewallet', 'manual'),
-    make(-5, '15:00', 'expense', 240000, 'pets', 'mai_anh', 'Mua hạt thức ăn & đồ chơi thú cưng', 'ewallet', 'manual'),
+    make(-5, '15:00', 'expense', 650000, 'business_expense', 'cha_binh', 'Nhập vật tư & vận chuyển đơn kinh doanh', 'bank', 'manual'),
 
     // -6 days
     make(-6, '10:15', 'expense', 1200000, 'gifts', 'cha_binh', 'Biếu ông bà nội ngoại cuối tuần', 'bank', 'manual'),
@@ -341,7 +341,7 @@ export function generateSampleTransactions(referenceDate = new Date()): Transact
     // -8 to -15 days
     make(-8, '09:00', 'expense', 1850000, 'kids', 'minh_phat', 'Học phí & tiền bán trú Minh Phát', 'bank', 'manual'),
     make(-8, '09:10', 'expense', 1550000, 'kids', 'mai_anh', 'Học phí & tiền bán trú Mai Anh', 'bank', 'manual'),
-    make(-9, '13:15', 'expense', 780000, 'housing', 'me_trang', 'Mua đồ dùng nhà bếp & vệ sinh nhà', 'card', 'manual'),
+    make(-9, '13:15', 'expense', 2000000, 'invest_expense', 'me_trang', 'Gửi tiết kiệm tích lũy định kỳ', 'bank', 'manual'),
     make(-10, '10:30', 'expense', 540000, 'grocery', 'me_trang', 'Đi chợ hải sản & trái cây nhập', 'ewallet', 'manual'),
     make(-11, '16:40', 'expense', 450000, 'transport', 'cha_binh', 'Đổ xăng ô tô & bảo dưỡng định kỳ', 'bank', 'manual'),
     make(-13, '08:30', 'expense', 480000, 'health', 'cha_binh', 'Khám nha khoa định kỳ', 'card', 'manual'),
@@ -362,7 +362,7 @@ export function generateSampleTransactions(referenceDate = new Date()): Transact
     makeDate(1, 14, '19:20', 'expense', 2550000, 'food', 'me_trang', 'Ăn uống gia đình trong tháng', 'card'),
     makeDate(1, 17, '16:00', 'expense', 1650000, 'shopping', 'mai_anh', 'Mua sắm quần áo & đồ dùng', 'card'),
     makeDate(1, 21, '10:40', 'expense', 1250000, 'transport', 'cha_binh', 'Xăng xe & gửi xe cả tháng', 'bank'),
-    makeDate(1, 24, '15:10', 'expense', 1420000, 'housing', 'cha_binh', 'Sửa chữa & thay thiết bị nhà', 'bank'),
+    makeDate(1, 24, '15:10', 'expense', 2000000, 'invest_expense', 'cha_binh', 'Mua chứng chỉ quỹ tích lũy tháng', 'bank'),
     makeDate(1, 27, '18:30', 'expense', 1180000, 'entertainment', 'cha_binh', 'Đi chơi công viên & ăn tối', 'ewallet'),
 
     // -2 months
@@ -372,7 +372,7 @@ export function generateSampleTransactions(referenceDate = new Date()): Transact
     makeDate(2, 14, '09:00', 'expense', 2100000, 'kids', 'minh_phat', 'Học phí & sách vở Minh Phát', 'bank'),
     makeDate(2, 14, '09:15', 'expense', 1750000, 'kids', 'mai_anh', 'Học phí & đồng phục Mai Anh', 'bank'),
     makeDate(2, 18, '11:30', 'expense', 1750000, 'bills', 'cha_binh', 'Hóa đơn điện nước tháng', 'bank'),
-    makeDate(2, 22, '17:00', 'expense', 2100000, 'housing', 'me_trang', 'Mua đồ gia dụng bếp', 'card'),
+    makeDate(2, 22, '17:00', 'expense', 2100000, 'business_expense', 'me_trang', 'Nhập hàng & chi phí kinh doanh', 'bank'),
     makeDate(2, 26, '12:00', 'expense', 1350000, 'transport', 'cha_binh', 'Đi lại & xăng xe', 'bank'),
 
     // -3 months

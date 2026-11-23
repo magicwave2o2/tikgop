@@ -49,6 +49,60 @@ interface FinanceContextValue {
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
 
+function migrateCategoriesAndTransactions(
+  parsed: Partial<FinanceState>,
+  members: FamilyMember[],
+  mergedSettings: FamilySettings,
+): FinanceState {
+  const storedCats =
+    Array.isArray(parsed.categories) && parsed.categories.length > 0
+      ? parsed.categories
+      : DEFAULT_CATEGORIES;
+
+  // Migrate v2 -> v3: replace default 'housing' -> 'invest_expense' and 'pets' -> 'business_expense'
+  const investDefault = DEFAULT_CATEGORIES.find((c) => c.id === 'invest_expense')!;
+  const businessDefault = DEFAULT_CATEGORIES.find((c) => c.id === 'business_expense')!;
+
+  const migratedCats: Category[] = [];
+  for (const cat of storedCats) {
+    if (cat.id === 'housing' && !cat.isCustom) {
+      if (!storedCats.some((c) => c.id === 'invest_expense')) {
+        migratedCats.push(investDefault);
+      }
+      continue;
+    }
+    if (cat.id === 'pets' && !cat.isCustom) {
+      if (!storedCats.some((c) => c.id === 'business_expense')) {
+        migratedCats.push(businessDefault);
+      }
+      continue;
+    }
+    migratedCats.push(cat);
+  }
+  if (!migratedCats.some((c) => c.id === 'invest_expense')) {
+    migratedCats.splice(3, 0, investDefault);
+  }
+  if (!migratedCats.some((c) => c.id === 'business_expense')) {
+    const otherIdx = migratedCats.findIndex((c) => c.id === 'other_expense');
+    migratedCats.splice(otherIdx >= 0 ? otherIdx : migratedCats.length, 0, businessDefault);
+  }
+
+  const migratedTxs = (parsed.transactions || []).map((tx) => {
+    if (tx.categoryId === 'housing') return { ...tx, categoryId: 'invest_expense' };
+    if (tx.categoryId === 'pets') return { ...tx, categoryId: 'business_expense' };
+    return tx;
+  });
+
+  return {
+    version: 3,
+    transactions: migratedTxs,
+    categories: migratedCats,
+    members,
+    settings: mergedSettings,
+    hasSampleData: Boolean(parsed.hasSampleData),
+  };
+}
+
 function loadInitialState(): FinanceState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -66,17 +120,7 @@ function loadInitialState(): FinanceState {
         if (!members.some((m) => m.id === mergedSettings.activeMemberId)) {
           mergedSettings.activeMemberId = members[0].id;
         }
-        return {
-          version: 2,
-          transactions: parsed.transactions,
-          categories:
-            Array.isArray(parsed.categories) && parsed.categories.length > 0
-              ? parsed.categories
-              : DEFAULT_CATEGORIES,
-          members,
-          settings: mergedSettings,
-          hasSampleData: Boolean(parsed.hasSampleData),
-        };
+        return migrateCategoriesAndTransactions(parsed, members, mergedSettings);
       }
     }
     // Clean up legacy v1 sample key if present
@@ -86,7 +130,7 @@ function loadInitialState(): FinanceState {
   }
 
   return {
-    version: 2,
+    version: 3,
     transactions: generateSampleTransactions(),
     categories: DEFAULT_CATEGORIES,
     members: DEFAULT_MEMBERS,

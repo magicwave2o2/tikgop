@@ -392,19 +392,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           whileHover={{ y: -1 }}
           whileTap={{ scale: 0.96 }}
           onClick={onOpenReceiptScan}
-          className="card-surface p-3.5 rounded-2xl flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-3 text-center sm:text-left hover:border-emerald-400/60 transition-all cursor-pointer"
+          className="card-surface p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-3 text-center sm:text-left hover:border-emerald-400/60 transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25">
             <ScanLine size={20} />
           </div>
-          <div className="min-w-0">
-            <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
-              Quét hóa đơn
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 line-clamp-1">
-              Chụp bill OCR
-            </div>
-          </div>
+          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
+            Quét hóa đơn
+          </span>
         </motion.button>
 
         <motion.button
@@ -412,19 +407,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           whileHover={{ y: -1 }}
           whileTap={{ scale: 0.96 }}
           onClick={onOpenVoiceInput}
-          className="card-surface p-3.5 rounded-2xl flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-3 text-center sm:text-left hover:border-violet-400/60 transition-all cursor-pointer"
+          className="card-surface p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-3 text-center sm:text-left hover:border-violet-400/60 transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-violet-500/25">
             <Mic size={20} />
           </div>
-          <div className="min-w-0">
-            <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
-              Nhập giọng nói
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 line-clamp-1">
-              Nói tiếng Việt
-            </div>
-          </div>
+          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
+            Giọng nói
+          </span>
         </motion.button>
 
         <motion.button
@@ -432,19 +422,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           whileHover={{ y: -1 }}
           whileTap={{ scale: 0.96 }}
           onClick={onQuickAdd}
-          className="card-surface p-3.5 rounded-2xl flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-3 text-center sm:text-left hover:border-sky-400/60 transition-all cursor-pointer"
+          className="card-surface p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-3 text-center sm:text-left hover:border-sky-400/60 transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-sky-500/25">
             <PlusCircle size={20} />
           </div>
-          <div className="min-w-0">
-            <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
-              Ghi nhanh tay
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 line-clamp-1">
-              Chọn danh mục
-            </div>
-          </div>
+          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
+            Ghi nhanh
+          </span>
         </motion.button>
       </section>
 
@@ -519,17 +504,12 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column */}
         <div className="lg:col-span-7 space-y-5">
-          {/* Dedicated Daily Categorized Breakdown (Phân loại chi tiêu hằng ngày) */}
+          {/* Dedicated Daily Categorized Breakdown */}
           <section className="card-surface rounded-3xl p-5">
             <div className="flex items-center justify-between gap-2 mb-3.5">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Phân loại chi tiêu hôm nay
-                </h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Tổng hợp rõ ràng từng nhóm chi trong ngày của cả gia đình
-                </p>
-              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Chi tiêu hôm nay
+              </h3>
               <span className="px-3 py-1 rounded-xl bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-extrabold tabular-nums shrink-0">
                 {formatVND(todayExpenseTotal)}
               </span>
@@ -596,14 +576,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           {/* Smart Period Category Classification Card */}
           <section className="card-surface rounded-3xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Phân loại chi tiêu ({range.shortLabel})
-                </h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Tự động tổng hợp theo danh mục
-                </p>
-              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Phân loại chi tiêu ({range.shortLabel})
+              </h3>
               <button
                 type="button"
                 onClick={() => onNavigateTab('analytics')}
@@ -615,22 +590,19 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </div>
 
             {categoryBreakdown.length === 0 ? (
-              <div className="py-10 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-3">
-                  <Sparkles size={22} />
+              <div className="py-8 text-center">
+                <div className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-2.5">
+                  <Sparkles size={20} />
                 </div>
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  Chưa có khoản chi trong kỳ này
-                </p>
-                <p className="text-xs text-slate-400 mt-1 mb-4">
-                  Quét hóa đơn, nói tiếng Việt hoặc bấm + để ghi nhận ngay.
+                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">
+                  Chưa có khoản chi nào
                 </p>
                 <button
                   type="button"
                   onClick={onQuickAdd}
                   className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-500/25 cursor-pointer"
                 >
-                  + Thêm giao dịch ngay
+                  + Thêm giao dịch
                 </button>
               </div>
             ) : (
@@ -694,21 +666,16 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             )}
           </section>
 
-          {/* 4 Family Members Spending Breakdown — Tap any member to filter dashboard */}
+          {/* 4 Family Members Spending Breakdown */}
           <section className="card-surface rounded-3xl p-5">
             <div className="flex items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-violet-500/12 text-violet-500 flex items-center justify-center">
                   <Users size={17} />
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Chi tiêu 4 thành viên ({range.shortLabel})
-                  </h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Chạm từng người để lọc chi tiết hoặc xem chung cả nhà
-                  </p>
-                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Chi tiêu 4 thành viên ({range.shortLabel})
+                </h3>
               </div>
 
               {viewScope !== 'all' && (
@@ -782,18 +749,13 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         <div className="lg:col-span-5 space-y-5">
           <section className="card-surface rounded-3xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  {miniTrendMode === 'day'
-                    ? 'Chi tiêu 7 ngày tuần này'
-                    : miniTrendMode === 'week'
-                      ? 'Tổng hợp các tuần trong tháng'
-                      : 'Xu hướng 6 tháng gần nhất'}
-                </h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Chạm từng cột để xem số liệu chi tiết
-                </p>
-              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                {miniTrendMode === 'day'
+                  ? 'Chi tiêu 7 ngày tuần này'
+                  : miniTrendMode === 'week'
+                    ? 'Các tuần trong tháng'
+                    : '6 tháng gần nhất'}
+              </h3>
               <button
                 type="button"
                 onClick={() => onNavigateTab('analytics')}
@@ -809,14 +771,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
           <section className="card-surface rounded-3xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Giao dịch gần đây
-                </h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Chạm giao dịch để sửa hoặc xem ảnh hóa đơn
-                </p>
-              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Giao dịch gần đây
+              </h3>
               <button
                 type="button"
                 onClick={() => onNavigateTab('history')}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import { useFinance } from '../store/useFinanceStore';
 import { DynamicIcon } from './IconRenderer';
 
@@ -41,9 +41,6 @@ export const MemberOnboarding: React.FC = () => {
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white mt-3">
             Bạn là thành viên nào?
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed max-w-xs">
-            Chọn một lần duy nhất — thiết bị này sẽ tự động ghi nhớ cho các lần mở ứng dụng tiếp theo.
-          </p>
         </div>
 
         {/* 4 Family Member Cards */}
@@ -116,14 +113,9 @@ export const MemberOnboarding: React.FC = () => {
           onClick={handleConfirm}
           className="mt-6 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-extrabold shadow-lg shadow-emerald-500/30 disabled:opacity-40 disabled:shadow-none transition-all cursor-pointer"
         >
-          <span>Bắt đầu sử dụng</span>
+          <span>Bắt đầu</span>
           <ArrowRight size={17} strokeWidth={2.5} />
         </motion.button>
-
-        <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-slate-400">
-          <ShieldCheck size={13} className="text-emerald-500 shrink-0" />
-          <span>Có thể đổi lại sau trong mục Gia đình</span>
-        </div>
       </motion.div>
     </div>
   );

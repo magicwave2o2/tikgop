@@ -172,14 +172,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     <div className="space-y-5">
       {/* Top Mode Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-            Lịch sử & Ngày tháng
-          </h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            Tra cứu chi tiêu từng ngày hoặc lọc theo danh mục & thành viên
-          </p>
-        </div>
+        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+          Lịch sử
+        </h2>
 
         <div className="grid grid-cols-2 p-1 rounded-2xl bg-white dark:bg-[#141923] border border-slate-200/70 dark:border-slate-800 shadow-xs w-full sm:w-64">
           {(
@@ -433,9 +428,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                       Không có giao dịch ngày này
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Một ngày tiết kiệm trọn vẹn!
-                    </p>
                   </div>
                 ) : (
                   <div className="-mx-2 divide-y divide-slate-100 dark:divide-slate-800/70">
@@ -472,7 +464,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Tìm ghi chú, danh mục, thành viên, ngày (vd: 2026-11)..."
+                    placeholder="Tìm kiếm..."
                     className="w-full pl-10 pr-9 py-2.5 rounded-2xl text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500"
                   />
                   {query && (
@@ -611,10 +603,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                   <Search size={22} />
                 </div>
                 <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                  Không tìm thấy giao dịch phù hợp
-                </p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.
+                  Không có giao dịch nào
                 </p>
               </div>
             ) : (

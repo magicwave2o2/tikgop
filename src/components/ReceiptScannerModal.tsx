@@ -264,14 +264,9 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 <div className="w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <ScanLine size={19} />
                 </div>
-                <div>
-                  <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
-                    Quét & Chụp hóa đơn AI
-                  </h2>
-                  <p className="text-[11px] text-slate-400">
-                    AI Vision đọc bill in, viết tay & ảnh chuyển khoản (tự dự phòng offline)
-                  </p>
-                </div>
+                <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                  Quét hóa đơn
+                </h2>
               </div>
 
               <button
@@ -350,12 +345,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
                         <Camera size={24} />
                       </div>
-                      <div className="text-center">
-                        <div className="text-sm font-extrabold">Chụp hóa đơn</div>
-                        <div className="text-[11px] text-emerald-50/85 mt-0.5">
-                          Bill in hoặc viết tay
-                        </div>
-                      </div>
+                      <span className="text-sm font-extrabold">Chụp hóa đơn</span>
                     </motion.button>
 
                     <motion.button
@@ -367,21 +357,16 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       <div className="w-12 h-12 rounded-2xl bg-sky-500/15 text-sky-500 flex items-center justify-center">
                         <ImagePlus size={24} />
                       </div>
-                      <div className="text-center">
-                        <div className="text-sm font-extrabold">Chọn ảnh bill</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          Thư viện / Chuyển khoản
-                        </div>
-                      </div>
+                      <span className="text-sm font-extrabold">Chọn ảnh bill</span>
                     </motion.button>
                   </div>
 
-                  {/* Interactive Demo Receipts (including Bank Transfer screenshot!) */}
+                  {/* Demo Receipts */}
                   <div className="p-4 rounded-3xl bg-slate-50/90 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800">
                     <div className="flex items-center gap-1.5 mb-2.5">
                       <Sparkles size={14} className="text-amber-500" />
                       <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200">
-                        Thử quét ngay với hóa đơn & chuyển khoản mẫu
+                        Hóa đơn mẫu
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -427,11 +412,6 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       <div className="absolute -top-0.5 -right-0.5 w-7 h-7 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl" />
                       <div className="absolute -bottom-0.5 -left-0.5 w-7 h-7 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl" />
                       <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 border-b-4 border-r-4 border-emerald-400 rounded-br-xl" />
-                    </div>
-                    <div className="absolute bottom-3 inset-x-0 text-center">
-                      <span className="px-3 py-1 rounded-full bg-black/55 backdrop-blur-md text-[11px] font-semibold text-white">
-                        Căn hóa đơn vào trong khung xanh
-                      </span>
                     </div>
                   </div>
 
@@ -535,7 +515,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                     <div className="flex-1 min-w-0 space-y-2">
                       <div>
                         <label className="block text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                          Tổng tiền (chạm để sửa nhanh)
+                          Tổng tiền
                         </label>
                         <div className="flex items-baseline gap-1 mt-0.5">
                           <input
@@ -567,7 +547,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                   {result.candidateAmounts.length > 1 && (
                     <div>
                       <span className="block text-[10.5px] font-bold text-slate-400 mb-1.5">
-                        Các số tiền khác trên hóa đơn (chạm để chọn):
+                        Số tiền khác:
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {result.candidateAmounts.map((amt) => (
@@ -591,7 +571,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                   {/* Inline 1-Tap Category Strip */}
                   <div>
                     <span className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                      Phân loại (chạm để đổi nhanh)
+                      Phân loại
                     </span>
                     <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
                       {expenseCategories.map((cat) => {

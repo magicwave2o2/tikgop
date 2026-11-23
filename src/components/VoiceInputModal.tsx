@@ -288,14 +288,9 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                 <div className="w-9 h-9 rounded-2xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center">
                   <Mic size={19} />
                 </div>
-                <div>
-                  <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
-                    Nhập chi tiêu bằng Giọng nói
-                  </h2>
-                  <p className="text-[11px] text-slate-400">
-                    Hiểu cả nhiều món 1 câu & khẩu ngữ (chục, lít, xị, củ)
-                  </p>
-                </div>
+                <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                  Nhập bằng giọng nói
+                </h2>
               </div>
 
               <button
@@ -371,9 +366,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                     </>
                   ) : (
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                      {isSpeechSupported
-                        ? 'Chạm Micro để nói tiếng Việt (vi-VN)'
-                        : 'Gõ hoặc chạm câu mẫu tiếng Việt bên dưới'}
+                      {isSpeechSupported ? 'Chạm để nói' : 'Nhập câu tự nhiên'}
                     </span>
                   )}
                 </div>
@@ -405,7 +398,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                     setExcludedIds([]);
                     setError('');
                   }}
-                  placeholder='Nói 1 hoặc nhiều khoản: "Mua thịt 120k, rau 4 chục, đổ xăng 1 lít 2"'
+                  placeholder="Ví dụ: Mua thịt 120k, rau 4 chục..."
                   className="w-full px-4 py-3 pr-9 rounded-2xl text-sm font-semibold bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-violet-500 resize-none"
                 />
                 {transcript && (
@@ -530,7 +523,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
               {/* Clickable Sample Phrases (including multi-item & colloquial Vietnamese slang!) */}
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Mẫu câu nói nhanh (chạm để thử ngay)
+                  Câu mẫu
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {VOICE_SAMPLE_PHRASES.map((phrase) => (

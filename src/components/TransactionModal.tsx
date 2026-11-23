@@ -558,7 +558,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <Check size={14} strokeWidth={2.5} />
-                    Đã lưu {sessionSavedCount} khoản — sẵn sàng nhập khoản tiếp theo!
+                    Đã lưu {sessionSavedCount} khoản
                   </span>
                   <button
                     type="button"
@@ -577,7 +577,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   <div className="flex items-center justify-between mb-0.5">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        Số tiền (hỗ trợ +, -, ×)
+                        Số tiền
                       </span>
                       {autoPriceHint && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
@@ -596,7 +596,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         }}
                         className="text-[11px] font-bold text-slate-400 hover:text-rose-500 cursor-pointer"
                       >
-                        Xóa số
+                        Xóa
                       </button>
                     )}
                   </div>
@@ -607,10 +607,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       type="text"
                       inputMode="decimal"
                       enterKeyHint="next"
-                      placeholder="0 (vd: 45 hoặc 120+35)"
+                      placeholder="0"
                       value={amountInput}
                       onChange={(e) => handleAmountChange(e.target.value)}
-                      className={`w-full bg-transparent text-3xl sm:text-[34px] font-extrabold tabular-nums leading-tight focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700 placeholder:text-xl placeholder:font-bold ${
+                      className={`w-full bg-transparent text-3xl sm:text-[34px] font-extrabold tabular-nums leading-tight focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700 ${
                         type === 'expense'
                           ? 'text-slate-900 dark:text-white'
                           : 'text-emerald-600 dark:text-emerald-400'
@@ -732,7 +732,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <input
                       type="text"
                       enterKeyHint="done"
-                      placeholder='Ghi chú nhanh... (gõ "Phở sáng 50k" tự tách giá & mục)'
+                      placeholder="Ghi chú nhanh..."
                       value={note}
                       onChange={(e) => handleNoteChange(e.target.value)}
                       className="w-full pl-9 pr-8 py-2 rounded-2xl text-sm font-medium bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-emerald-500"
@@ -808,9 +808,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <div className="min-w-0">
                       <div className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">
                         <Receipt size={13} />
-                        <span>Hóa đơn đính kèm (IndexedDB)</span>
+                        <span>Hóa đơn đính kèm</span>
                       </div>
-                      <div className="text-[11px] text-slate-400">Chạm để xem ảnh bill gốc</div>
                     </div>
                   </button>
                   <button

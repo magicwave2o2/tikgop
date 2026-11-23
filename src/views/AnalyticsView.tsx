@@ -153,14 +153,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     <div className="space-y-5">
       {/* Header & Grouping Mode Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-            Phân tích & Tổng hợp
-          </h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            Tự động chia tổng chi tiêu theo ngày, tuần, tháng và phân loại thông minh
-          </p>
-        </div>
+        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+          Phân tích
+        </h2>
 
         <div className="grid grid-cols-3 p-1 rounded-2xl bg-white dark:bg-[#141923] border border-slate-200/70 dark:border-slate-800 shadow-xs w-full sm:w-72">
           {(
@@ -271,18 +266,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <section className="lg:col-span-7 card-surface rounded-3xl p-5">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                {trendMode === 'day'
-                  ? 'Biểu đồ chi tiêu từng ngày (T2 – CN)'
-                  : trendMode === 'week'
-                    ? 'Biểu đồ tổng hợp từng tuần trong tháng'
-                    : 'Biểu đồ xu hướng 6 tháng liên tiếp'}
-              </h3>
-              <p className="text-xs text-slate-400">
-                Đường nét đứt thể hiện mức chi tiêu trung bình
-              </p>
-            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              {trendMode === 'day'
+                ? 'Chi tiêu từng ngày (T2 – CN)'
+                : trendMode === 'week'
+                  ? 'Tổng hợp từng tuần'
+                  : 'Xu hướng 6 tháng'}
+            </h3>
 
             <button
               type="button"
@@ -302,16 +292,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
         {/* Detailed Auto-Summed Slice Breakdown */}
         <section className="lg:col-span-5 card-surface rounded-3xl p-5">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-            Bảng tổng hợp tự động
+          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">
+            Tổng hợp chi tiết
           </h3>
-          <p className="text-xs text-slate-400 mb-4">
-            {trendMode === 'day'
-              ? 'Tổng chi tiêu cộng dồn theo từng ngày'
-              : trendMode === 'week'
-                ? 'Tổng chi tiêu chia theo từng tuần'
-                : 'Tổng chi tiêu chia theo từng tháng'}
-          </p>
 
           <div className="space-y-2.5">
             {buckets.map((b) => {
@@ -409,14 +392,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <div className="w-8 h-8 rounded-xl bg-emerald-500/12 text-emerald-500 flex items-center justify-center">
                 <PieChart size={17} />
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Cơ cấu phân loại chi tiết
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Kèm mức trung bình mỗi lần & theo dõi hạn mức danh mục
-                </p>
-              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Phân loại chi tiết
+              </h3>
             </div>
 
             <div className="flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800">
@@ -536,12 +514,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             <div className="w-8 h-8 rounded-xl bg-violet-500/12 text-violet-500 flex items-center justify-center">
               <Users size={17} />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Theo thành viên
-              </h3>
-              <p className="text-xs text-slate-400">Tỷ trọng chi tiêu gia đình</p>
-            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Theo thành viên
+            </h3>
           </div>
 
           <div className="space-y-3">

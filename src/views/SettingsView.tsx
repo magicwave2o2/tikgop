@@ -9,7 +9,6 @@ import {
   Moon,
   Plus,
   Share,
-  ShieldCheck,
   Smartphone,
   Sun,
   Tag,
@@ -141,14 +140,9 @@ export const SettingsView: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-          Gia đình & Cài đặt PWA
-        </h2>
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          Tùy chỉnh ngân sách, thành viên, danh mục và sao lưu ngoại tuyến an toàn
-        </p>
-      </div>
+      <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+        Gia đình & Cài đặt
+      </h2>
 
       {/* PWA App Install & Offline Readiness Card */}
       <section className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white shadow-xl">
@@ -160,7 +154,7 @@ export const SettingsView: React.FC = () => {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base font-extrabold">Ứng dụng PWA TíchGóp</h3>
+                <h3 className="text-base font-extrabold">Ứng dụng TíchGóp</h3>
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                     isOnline
@@ -169,18 +163,13 @@ export const SettingsView: React.FC = () => {
                   }`}
                 >
                   {isOnline ? <Wifi size={11} /> : <WifiOff size={11} />}
-                  {isOnline ? 'Sẵn sàng ngoại tuyến' : 'Đang dùng ngoại tuyến'}
+                  {isOnline ? 'Sẵn sàng ngoại tuyến' : 'Ngoại tuyến'}
                 </span>
               </div>
-              <p className="text-xs text-slate-300 mt-1 max-w-md leading-relaxed">
-                {isInstalled
-                  ? 'Tuyệt vời! TíchGóp đang chạy ở chế độ ứng dụng độc lập toàn màn hình. Mọi dữ liệu lưu ngay trên thiết bị, không cần mạng vẫn ghi chi tiêu mượt mà.'
-                  : 'Cài đặt TíchGóp lên màn hình chính điện thoại hoặc máy tính để mở siêu nhanh, dùng toàn màn hình và hoạt động 100% không cần Internet.'}
-              </p>
               {!isInstalled && isIOS && (
-                <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-[11px] font-medium text-emerald-100">
+                <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-[11px] font-medium text-emerald-100">
                   <Share size={13} />
-                  <span>iOS Safari: Nhấn nút Chia sẻ → chọn &quot;Thêm vào MH chính&quot;</span>
+                  <span>Chia sẻ → Thêm vào MH chính</span>
                 </div>
               )}
             </div>
@@ -315,14 +304,9 @@ export const SettingsView: React.FC = () => {
               <div className="w-8 h-8 rounded-xl bg-sky-500/12 text-sky-500 flex items-center justify-center">
                 <Database size={17} />
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Sao lưu & Dữ liệu ({state.transactions.length} giao dịch)
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Dữ liệu lưu cục bộ bảo mật 100% trên thiết bị của bạn
-                </p>
-              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Sao lưu & Dữ liệu ({state.transactions.length} giao dịch)
+              </h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -380,12 +364,7 @@ export const SettingsView: React.FC = () => {
               <p className="text-xs font-semibold text-rose-500">{importError}</p>
             )}
 
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                <ShieldCheck size={14} className="text-emerald-500" />
-                <span>Không gửi dữ liệu ra máy chủ ngoài</span>
-              </div>
-
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
               {!confirmClear ? (
                 <button
                   type="button"
@@ -578,9 +557,7 @@ export const SettingsView: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
                     Danh mục phân loại
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    {state.categories.length} danh mục sẵn có & tùy chỉnh
-                  </p>
+                  <p className="text-xs text-slate-400">{state.categories.length} danh mục</p>
                 </div>
               </div>
 

@@ -1,19 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  Calculator,
   Calendar,
   Check,
   ChevronDown,
   Clock,
   FileText,
   Mic,
+  Plus,
   Receipt,
   ScanLine,
   Sparkles,
   Trash2,
   X,
+  Zap,
 } from 'lucide-react';
 import { PAYMENT_METHODS } from '../data/defaults';
 import { useFinance } from '../store/useFinanceStore';
@@ -28,11 +31,14 @@ import {
   addDays,
   formatCompactVND,
   formatRawAmount,
+  formatVND,
   getToday,
   pad2,
-  parseRawAmount,
   toDateKey,
 } from '../utils/format';
+import { evaluateAmountExpression, getSmartMultiplierSuggestions } from '../utils/mathEval';
+import { loadReceiptImage, saveReceiptImage } from '../utils/receiptStorage';
+import { extractVietnameseAmount } from '../utils/voiceParser';
 import { CategoryIconBadge, DynamicIcon, PaymentMethodIcon } from './IconRenderer';
 
 interface TransactionModalProps {
@@ -54,6 +60,22 @@ const QUICK_AMOUNTS = [
   { label: '+200k', value: 200_000 },
   { label: '+500k', value: 500_000 },
   { label: '+1tr', value: 1_000_000 },
+];
+
+interface QuickTemplate {
+  label: string;
+  amount: number;
+  categoryId: string;
+  note: string;
+}
+
+const BUILTIN_TEMPLATES: QuickTemplate[] = [
+  { label: 'Ăn sáng 50k', amount: 50_000, categoryId: 'food', note: 'Ăn sáng' },
+  { label: 'Cà phê 45k', amount: 45_000, categoryId: 'food', note: 'Cà phê' },
+  { label: 'Đổ xăng 100k', amount: 100_000, categoryId: 'transport', note: 'Đổ xăng xe' },
+  { label: 'Đi chợ 200k', amount: 200_000, categoryId: 'grocery', note: 'Đi chợ thực phẩm' },
+  { label: 'Tiền điện', amount: 0, categoryId: 'bills', note: 'Thanh toán tiền điện' },
+  { label: 'Học phí', amount: 0, categoryId: 'kids', note: 'Đóng học phí tháng' },
 ];
 
 function getCurrentTimeStr(): string {
@@ -90,15 +112,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [categoryId, setCategoryId] = useState('food');
   const [manualCategoryPicked, setManualCategoryPicked] = useState(false);
   const [autoMatchedHint, setAutoMatchedHint] = useState(false);
+  const [autoPriceHint, setAutoPriceHint] = useState(false);
   const [memberId, setMemberId] = useState(activeMember.id);
   const [date, setDate] = useState(toDateKey(getToday()));
   const [time, setTime] = useState(getCurrentTimeStr());
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(getLastPaymentMethod);
   const [note, setNote] = useState('');
-  const [receiptImage, setReceiptImage] = useState<string | undefined>(undefined);
+  const [receiptRef, setReceiptRef] = useState<string | undefined>(undefined);
+  const [resolvedReceiptUrl, setResolvedReceiptUrl] = useState<string | null>(null);
   const [source, setSource] = useState<'manual' | 'receipt' | 'voice'>('manual');
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [zoomReceipt, setZoomReceipt] = useState(false);
+  const [sessionSavedCount, setSessionSavedCount] = useState(0);
   const [error, setError] = useState('');
 
   const amountRef = useRef<HTMLInputElement>(null);
@@ -108,11 +133,65 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     filteredCategories.find((c) => c.id === categoryId) || filteredCategories[0];
   const selectedMember = state.members.find((m) => m.id === memberId) || activeMember;
 
+  // Build smart frequent templates combining recent user entries + practical defaults
+  const frequentTemplates = useMemo<QuickTemplate[]>(() => {
+    if (type !== 'expense') return [];
+    const counts = new Map<string, { item: QuickTemplate; freq: number }>();
+    for (const tx of state.transactions) {
+      if (tx.type !== 'expense' || !tx.note.trim()) continue;
+      const key = `${tx.categoryId}|${tx.note.trim().toLowerCase()}`;
+      const existing = counts.get(key);
+      if (existing) {
+        existing.freq += 1;
+      } else {
+        counts.set(key, {
+          freq: 1,
+          item: {
+            label: `${tx.note.trim().slice(0, 14)} ${formatCompactVND(tx.amount)}`,
+            amount: tx.amount,
+            categoryId: tx.categoryId,
+            note: tx.note.trim(),
+          },
+        });
+      }
+    }
+    const userTop = Array.from(counts.values())
+      .sort((a, b) => b.freq - a.freq)
+      .slice(0, 3)
+      .map((x) => x.item);
+
+    const merged = [...userTop];
+    for (const b of BUILTIN_TEMPLATES) {
+      if (merged.length >= 6) break;
+      if (!merged.some((m) => m.note.toLowerCase() === b.note.toLowerCase())) {
+        merged.push(b);
+      }
+    }
+    return merged;
+  }, [state.transactions, type]);
+
+  // Resolve IndexedDB receipt image whenever receiptRef changes
+  useEffect(() => {
+    let active = true;
+    if (!receiptRef) {
+      setResolvedReceiptUrl(null);
+      return;
+    }
+    void loadReceiptImage(receiptRef).then((url) => {
+      if (active) setResolvedReceiptUrl(url);
+    });
+    return () => {
+      active = false;
+    };
+  }, [receiptRef]);
+
   useEffect(() => {
     if (!open) return;
     setError('');
     setZoomReceipt(false);
     setAutoMatchedHint(false);
+    setAutoPriceHint(false);
+    setSessionSavedCount(0);
 
     if (editingTx) {
       setType(editingTx.type);
@@ -124,7 +203,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setTime(editingTx.time);
       setPaymentMethod(editingTx.paymentMethod);
       setNote(editingTx.note);
-      setReceiptImage(editingTx.receiptImage);
+      setReceiptRef(editingTx.receiptImage);
       setSource(editingTx.source || 'manual');
       setShowMoreOptions(true);
     } else if (draft) {
@@ -137,7 +216,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setTime(draft.time || getCurrentTimeStr());
       setPaymentMethod(draft.paymentMethod || getLastPaymentMethod());
       setNote(draft.note || '');
-      setReceiptImage(draft.receiptImage);
+      setReceiptRef(draft.receiptImage);
       setSource(draft.source || 'manual');
       setShowMoreOptions(false);
     } else {
@@ -150,17 +229,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setTime(getCurrentTimeStr());
       setPaymentMethod(getLastPaymentMethod());
       setNote('');
-      setReceiptImage(undefined);
+      setReceiptRef(undefined);
       setSource('manual');
       setShowMoreOptions(Boolean(defaultDate && defaultDate !== toDateKey(getToday())));
-      // Focus amount input smoothly for zero-tap typing
       window.setTimeout(() => {
         amountRef.current?.focus();
       }, 120);
     }
   }, [open, editingTx, draft, defaultDate, activeMember.id]);
 
-  // Keep category valid when switching Chi tiêu / Thu nhập
   useEffect(() => {
     const valid = state.categories.some((c) => c.id === categoryId && c.type === type);
     if (!valid) {
@@ -181,9 +258,58 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, zoomReceipt, onClose]);
 
+  const exprResult = useMemo(() => evaluateAmountExpression(amountInput), [amountInput]);
+  const multiplierSuggestions = useMemo(
+    () => getSmartMultiplierSuggestions(amountInput),
+    [amountInput],
+  );
+
+  // Format plain numeric input smoothly, while preserving operator expressions like "120+35"
+  const handleAmountChange = (rawValue: string) => {
+    setError('');
+    setAutoPriceHint(false);
+    const cleaned = rawValue.replace(/[^0-9+\-*/x×.,kKtrTR ]/g, '');
+    if (/[+\-*/x×kKtrTR]/.test(cleaned)) {
+      setAmountInput(cleaned);
+    } else {
+      setAmountInput(formatRawAmount(cleaned));
+    }
+  };
+
+  const handleInsertOperator = (op: '+' | '-' | '*') => {
+    if (!amountInput.trim()) return;
+    const trimmed = amountInput.trim();
+    if (/[+\-*/]$/.test(trimmed)) {
+      setAmountInput(trimmed.slice(0, -1) + op);
+    } else {
+      setAmountInput(trimmed + op);
+    }
+    amountRef.current?.focus();
+  };
+
+  const handleApplyExpression = (multiplyThousand = false) => {
+    if (!exprResult.valid) return;
+    const finalVal = multiplyThousand ? exprResult.value * 1_000 : exprResult.value;
+    setAmountInput(formatRawAmount(String(finalVal)));
+    setError('');
+  };
+
+  const handleQuickAddAmount = (delta: number) => {
+    const current = exprResult.valid ? exprResult.value : 0;
+    setAmountInput(formatRawAmount(String(current + delta)));
+    setError('');
+  };
+
+  const handleMultiplyThousand = () => {
+    if (exprResult.valid && exprResult.value > 0 && exprResult.value < 1_000_000) {
+      setAmountInput(formatRawAmount(String(exprResult.value * 1_000)));
+      setError('');
+    }
+  };
+
   const handleNoteChange = (nextNote: string) => {
     setNote(nextNote);
-    // Auto-detect matching category while typing quick note if user hasn't manually locked another category
+    // 1. Auto-detect category while typing quick note
     if (!manualCategoryPicked && nextNote.trim().length >= 2) {
       const detected = detectCategoryFromText(nextNote, type, state.categories);
       const fallback = type === 'income' ? 'other_income' : 'other_expense';
@@ -192,25 +318,32 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         setAutoMatchedHint(true);
       }
     }
-  };
-
-  const handleQuickAddAmount = (delta: number) => {
-    const current = parseRawAmount(amountInput);
-    setAmountInput(formatRawAmount(String(current + delta)));
-    setError('');
-  };
-
-  const handleMultiplyThousand = () => {
-    const current = parseRawAmount(amountInput);
-    if (current > 0 && current < 1_000_000) {
-      setAmountInput(formatRawAmount(String(current * 1000)));
-      setError('');
+    // 2. Smart single-line price extraction if Amount is currently empty (e.g. typing "Phở bò 50k")
+    if (!amountInput.trim() && /\d|chục|lít|xị|nghìn|ngàn|triệu/i.test(nextNote)) {
+      const extracted = extractVietnameseAmount(nextNote);
+      if (extracted >= 1_000) {
+        setAmountInput(formatRawAmount(String(extracted)));
+        setAutoPriceHint(true);
+        setError('');
+      }
     }
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const numericAmount = parseRawAmount(amountInput);
+  const handleApplyTemplate = (tpl: QuickTemplate) => {
+    setCategoryId(tpl.categoryId);
+    setManualCategoryPicked(true);
+    setAutoMatchedHint(false);
+    setNote(tpl.note);
+    if (tpl.amount > 0) {
+      setAmountInput(formatRawAmount(String(tpl.amount)));
+      setError('');
+    } else {
+      amountRef.current?.focus();
+    }
+  };
+
+  const saveEntry = async (keepOpenForNext: boolean) => {
+    const numericAmount = exprResult.valid ? exprResult.value : 0;
     if (numericAmount <= 0) {
       setError('Vui lòng nhập số tiền lớn hơn 0');
       amountRef.current?.focus();
@@ -223,6 +356,19 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       // ignore storage error
     }
 
+    let finalReceiptRef = receiptRef;
+    if (receiptRef && receiptRef.startsWith('data:image/')) {
+      finalReceiptRef = await saveReceiptImage(receiptRef);
+    }
+
+    // Strip redundant price suffix if user typed "Phở bò 50k" into note and price was auto-extracted
+    const cleanNote = autoPriceHint
+      ? note
+          .replace(/\b\d+(?:[.,]\d+)?\s*(triệu|tr|nghìn|ngàn|k|đ|vnd)\b/gi, '')
+          .replace(/\s+/g, ' ')
+          .trim() || note.trim()
+      : note.trim();
+
     const payload = {
       type,
       amount: numericAmount,
@@ -231,22 +377,44 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       date,
       time: time || getCurrentTimeStr(),
       paymentMethod,
-      note: note.trim(),
-      receiptImage,
+      note: cleanNote,
+      receiptImage: finalReceiptRef,
       source,
     };
 
     if (editingTx) {
       updateTransaction(editingTx.id, payload);
-    } else {
-      addTransaction(payload);
+      onClose();
+      return;
     }
-    onClose();
+
+    addTransaction(payload);
+
+    if (keepOpenForNext) {
+      setSessionSavedCount((c) => c + 1);
+      setAmountInput('');
+      setNote('');
+      setManualCategoryPicked(false);
+      setAutoMatchedHint(false);
+      setAutoPriceHint(false);
+      setReceiptRef(undefined);
+      setSource('manual');
+      setTime(getCurrentTimeStr());
+      setError('');
+      window.setTimeout(() => amountRef.current?.focus(), 60);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    void saveEntry(false);
   };
 
   const todayKey = toDateKey(getToday());
   const yesterdayKey = toDateKey(addDays(getToday(), -1));
-  const numericPreview = parseRawAmount(amountInput);
+  const numericPreview = exprResult.valid ? exprResult.value : 0;
   const dateBadgeLabel =
     date === todayKey
       ? 'Hôm nay'
@@ -279,9 +447,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
             </div>
 
-            {/* Compact Top Header: Type Switcher + Quét bill / Nói / Close */}
+            {/* Compact Top Header */}
             <div className="flex items-center justify-between px-3.5 sm:px-5 pt-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800/80 gap-1.5">
-              {/* Inline Chi tiêu / Thu nhập segmented pill */}
               <div className="grid grid-cols-2 p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 shrink-0">
                 {(
                   [
@@ -380,21 +547,51 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <form
               id="quick-tx-form"
               onSubmit={handleSubmit}
-              className="flex-1 overflow-y-auto px-4 sm:px-5 py-3.5 space-y-3.5"
+              className="flex-1 overflow-y-auto px-4 sm:px-5 py-3 space-y-3"
             >
-              {/* UNIFIED TOP HERO CARD: Số tiền + Ghi chú nhanh (Zero scrolling!) */}
-              <div className="rounded-3xl p-3.5 bg-slate-50 dark:bg-slate-900/75 border border-slate-200/80 dark:border-slate-800 space-y-3">
-                {/* 1. Số tiền */}
+              {/* Session batch save notice when user uses "Lưu & tiếp" */}
+              {sessionSavedCount > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-xs font-bold"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Check size={14} strokeWidth={2.5} />
+                    Đã lưu {sessionSavedCount} khoản — sẵn sàng nhập khoản tiếp theo!
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="underline text-[11px] cursor-pointer"
+                  >
+                    Xong
+                  </button>
+                </motion.div>
+              )}
+
+              {/* UNIFIED TOP HERO CARD: Số tiền (with Calc + Smart Multipliers) + Ghi chú nhanh */}
+              <div className="rounded-3xl p-3.5 bg-slate-50 dark:bg-slate-900/75 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+                {/* 1. Số tiền + Inline Calculator */}
                 <div>
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      Số tiền (VNĐ)
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        Số tiền (hỗ trợ +, -, ×)
+                      </span>
+                      {autoPriceHint && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                          <Sparkles size={10} />
+                          Tự tách giá
+                        </span>
+                      )}
+                    </div>
                     {amountInput && (
                       <button
                         type="button"
                         onClick={() => {
                           setAmountInput('');
+                          setAutoPriceHint(false);
                           amountRef.current?.focus();
                         }}
                         className="text-[11px] font-bold text-slate-400 hover:text-rose-500 cursor-pointer"
@@ -408,15 +605,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <input
                       ref={amountRef}
                       type="text"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       enterKeyHint="next"
-                      placeholder="0"
+                      placeholder="0 (vd: 45 hoặc 120+35)"
                       value={amountInput}
-                      onChange={(e) => {
-                        setAmountInput(formatRawAmount(e.target.value));
-                        setError('');
-                      }}
-                      className={`w-full bg-transparent text-3xl sm:text-[34px] font-extrabold tabular-nums leading-tight focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700 ${
+                      onChange={(e) => handleAmountChange(e.target.value)}
+                      className={`w-full bg-transparent text-3xl sm:text-[34px] font-extrabold tabular-nums leading-tight focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700 placeholder:text-xl placeholder:font-bold ${
                         type === 'expense'
                           ? 'text-slate-900 dark:text-white'
                           : 'text-emerald-600 dark:text-emerald-400'
@@ -425,32 +619,110 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <span className="text-xl font-extrabold text-slate-400 shrink-0">₫</span>
                   </div>
 
+                  {/* Live Expression Calculator Result Bar */}
+                  {exprResult.hasOperator && exprResult.valid && (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleApplyExpression(false)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold tabular-nums cursor-pointer"
+                      >
+                        <Calculator size={12} />
+                        <span>= {formatVND(exprResult.value)}</span>
+                      </button>
+                      {exprResult.suggestThousands && (
+                        <button
+                          type="button"
+                          onClick={() => handleApplyExpression(true)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500 text-white text-xs font-extrabold tabular-nums shadow-xs cursor-pointer"
+                        >
+                          <span>= {formatVND(exprResult.value * 1_000)}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {error && <p className="text-xs font-semibold text-rose-500 mt-1">{error}</p>}
 
-                  {/* Quick Amount Suggestion Pills */}
+                  {/* Dynamic Bar: MoMo-style Multiplier Suggestions OR Quick Operators + Amounts */}
                   <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2">
-                    <button
-                      type="button"
-                      onClick={handleMultiplyThousand}
-                      className="shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-slate-200/90 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-500 hover:text-white transition-colors cursor-pointer"
-                    >
-                      .000
-                    </button>
-                    {QUICK_AMOUNTS.map((q) => (
-                      <motion.button
-                        key={q.value}
-                        type="button"
-                        whileTap={{ scale: 0.92 }}
-                        onClick={() => handleQuickAddAmount(q.value)}
-                        className="shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:border-emerald-400 hover:text-emerald-600 transition-colors cursor-pointer"
-                      >
-                        {q.label}
-                      </motion.button>
-                    ))}
+                    {multiplierSuggestions.length > 0 ? (
+                      <>
+                        {multiplierSuggestions.map((val) => (
+                          <motion.button
+                            key={val}
+                            type="button"
+                            initial={{ opacity: 0, scale: 0.92 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            whileTap={{ scale: 0.92 }}
+                            onClick={() => {
+                              setAmountInput(formatRawAmount(String(val)));
+                              setError('');
+                            }}
+                            className="shrink-0 px-3 py-1 rounded-xl text-xs font-extrabold tabular-nums bg-emerald-500/14 text-emerald-700 dark:text-emerald-300 border border-emerald-500/35 hover:bg-emerald-500 hover:text-white transition-colors cursor-pointer"
+                          >
+                            {formatVND(val)}
+                          </motion.button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => handleInsertOperator('+')}
+                          className="shrink-0 px-2.5 py-1 rounded-xl text-xs font-extrabold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer"
+                          title="Cộng thêm số tiền"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInsertOperator('-')}
+                          className="shrink-0 px-2.5 py-1 rounded-xl text-xs font-extrabold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer"
+                          title="Trừ bớt số tiền"
+                        >
+                          −
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInsertOperator('*')}
+                          className="shrink-0 px-2.5 py-1 rounded-xl text-xs font-extrabold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer"
+                          title="Nhân số lượng"
+                        >
+                          ×
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleMultiplyThousand}
+                          className="shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-slate-200/90 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-500 hover:text-white transition-colors cursor-pointer"
+                        >
+                          .000
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInsertOperator('+')}
+                          className="shrink-0 px-2 py-1 rounded-xl text-xs font-extrabold bg-slate-200/75 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-500 hover:text-white cursor-pointer"
+                          title="Cộng nhiều món"
+                        >
+                          +
+                        </button>
+                        {QUICK_AMOUNTS.map((q) => (
+                          <motion.button
+                            key={q.value}
+                            type="button"
+                            whileTap={{ scale: 0.92 }}
+                            onClick={() => handleQuickAddAmount(q.value)}
+                            className="shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:border-emerald-400 hover:text-emerald-600 transition-colors cursor-pointer"
+                          >
+                            {q.label}
+                          </motion.button>
+                        ))}
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* 2. Ghi chú nhanh (Immediately below Số tiền!) */}
+                {/* 2. Ghi chú nhanh (Smart auto-category + auto-price extraction!) */}
                 <div className="pt-2.5 border-t border-slate-200/70 dark:border-slate-800">
                   <div className="relative flex items-center">
                     <FileText
@@ -460,7 +732,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <input
                       type="text"
                       enterKeyHint="done"
-                      placeholder={`Ghi chú nhanh... (vd: ${selectedCategory?.quickNotes?.[0] || 'Ăn sáng, đổ xăng...'})`}
+                      placeholder='Ghi chú nhanh... (gõ "Phở sáng 50k" tự tách giá & mục)'
                       value={note}
                       onChange={(e) => handleNoteChange(e.target.value)}
                       className="w-full pl-9 pr-8 py-2 rounded-2xl text-sm font-medium bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-emerald-500"
@@ -477,7 +749,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     )}
                   </div>
 
-                  {/* Single-row quick-note suggestion chips */}
+                  {/* Quick-note suggestion chips for active category */}
                   {selectedCategory?.quickNotes && selectedCategory.quickNotes.length > 0 && (
                     <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2">
                       {selectedCategory.quickNotes.map((tag) => (
@@ -499,8 +771,29 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </div>
               </div>
 
-              {/* Attached Receipt Thumbnail Preview (if from OCR scan) */}
-              {receiptImage && (
+              {/* 1-Tap Frequent Family Templates Strip (when adding new expense) */}
+              {!editingTx && frequentTemplates.length > 0 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-500 pr-0.5">
+                    <Zap size={12} />
+                    Mẫu nhanh:
+                  </span>
+                  {frequentTemplates.map((tpl) => (
+                    <motion.button
+                      key={tpl.label}
+                      type="button"
+                      whileTap={{ scale: 0.94 }}
+                      onClick={() => handleApplyTemplate(tpl)}
+                      className="shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                    >
+                      {tpl.label}
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+
+              {/* Attached Receipt Thumbnail Preview */}
+              {resolvedReceiptUrl && (
                 <div className="flex items-center justify-between gap-3 p-2.5 rounded-2xl bg-emerald-500/8 border border-emerald-500/20">
                   <button
                     type="button"
@@ -508,21 +801,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     className="flex items-center gap-2.5 text-left cursor-pointer min-w-0"
                   >
                     <img
-                      src={receiptImage}
+                      src={resolvedReceiptUrl}
                       alt="Ảnh hóa đơn đính kèm"
                       className="w-10 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 bg-white"
                     />
                     <div className="min-w-0">
                       <div className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">
                         <Receipt size={13} />
-                        <span>Hóa đơn đính kèm</span>
+                        <span>Hóa đơn đính kèm (IndexedDB)</span>
                       </div>
-                      <div className="text-[11px] text-slate-400">Chạm để xem ảnh bill</div>
+                      <div className="text-[11px] text-slate-400">Chạm để xem ảnh bill gốc</div>
                     </div>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setReceiptImage(undefined)}
+                    onClick={() => setReceiptRef(undefined)}
                     className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 cursor-pointer"
                   >
                     <X size={15} />
@@ -532,7 +825,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
               {/* Compact 4-Column Icon Category Picker */}
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                       Phân loại
@@ -589,11 +882,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </div>
               </div>
 
-              {/* Compact Quick Metadata Strip (1-tap Date / Payment / Member summary + Expandable detail) */}
+              {/* Compact Quick Metadata Strip */}
               <div className="rounded-2xl bg-slate-50/90 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 p-2.5 space-y-2.5">
                 <div className="flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                    {/* Active Member Chip */}
                     <button
                       type="button"
                       onClick={() => setShowMoreOptions((v) => !v)}
@@ -604,7 +896,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       <span>{selectedMember.name}</span>
                     </button>
 
-                    {/* Quick Today / Yesterday / Date chip */}
                     <button
                       type="button"
                       onClick={() =>
@@ -617,7 +908,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       <span>{dateBadgeLabel}</span>
                     </button>
 
-                    {/* Quick Payment Cycle Chip */}
                     <button
                       type="button"
                       onClick={() => {
@@ -648,7 +938,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   </button>
                 </div>
 
-                {/* Expandable Full Member / Payment / Exact Date-Time Picker */}
                 <AnimatePresence initial={false}>
                   {showMoreOptions && (
                     <motion.div
@@ -659,7 +948,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       className="overflow-hidden"
                     >
                       <div className="pt-2.5 border-t border-slate-200/70 dark:border-slate-800 space-y-3">
-                        {/* 4 Members */}
                         <div>
                           <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1.5">
                             Thành viên
@@ -691,7 +979,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                           </div>
                         </div>
 
-                        {/* Payment Methods */}
                         <div>
                           <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1.5">
                             Nguồn tiền
@@ -718,7 +1005,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                           </div>
                         </div>
 
-                        {/* Exact Date & Time */}
                         <div className="grid grid-cols-5 gap-2">
                           <div className="col-span-3 relative flex items-center">
                             <Calendar
@@ -752,33 +1038,48 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
             </form>
 
-            {/* Pinned Sticky Save Footer — Always visible without scrolling! */}
+            {/* Pinned Sticky Save Footer with "Lưu & tiếp" */}
             <div className="px-4 sm:px-5 pt-2.5 pb-safe bg-white/95 dark:bg-[#141923]/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800/80">
-              <motion.button
-                type="submit"
-                form="quick-tx-form"
-                whileTap={{ scale: 0.97 }}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-extrabold text-white bg-gradient-to-r from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 hover:brightness-105 transition-all cursor-pointer"
-              >
-                <Check size={18} strokeWidth={2.6} />
-                <span>
-                  {editingTx
-                    ? 'Cập nhật giao dịch'
-                    : type === 'expense'
-                      ? numericPreview > 0
-                        ? `Lưu khoản chi • ${formatCompactVND(numericPreview)}`
-                        : 'Lưu khoản chi tiêu'
-                      : numericPreview > 0
-                        ? `Lưu khoản thu • +${formatCompactVND(numericPreview)}`
-                        : 'Lưu khoản thu nhập'}
-                </span>
-              </motion.button>
+              <div className="flex items-center gap-2">
+                {!editingTx && (
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => void saveEntry(true)}
+                    className="shrink-0 inline-flex items-center justify-center gap-1 px-3.5 py-3.5 rounded-2xl text-xs font-extrabold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/20 whitespace-nowrap transition-colors cursor-pointer"
+                    title="Lưu khoản này và giữ khung mở để nhập tiếp ngay"
+                  >
+                    <Plus size={16} strokeWidth={2.5} />
+                    <span>Lưu & tiếp</span>
+                  </motion.button>
+                )}
+
+                <motion.button
+                  type="submit"
+                  form="quick-tx-form"
+                  whileTap={{ scale: 0.97 }}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-extrabold text-white bg-gradient-to-r from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 hover:brightness-105 transition-all cursor-pointer"
+                >
+                  <Check size={18} strokeWidth={2.6} />
+                  <span>
+                    {editingTx
+                      ? 'Cập nhật giao dịch'
+                      : type === 'expense'
+                        ? numericPreview > 0
+                          ? `Lưu • ${formatCompactVND(numericPreview)}`
+                          : 'Lưu khoản chi'
+                        : numericPreview > 0
+                          ? `Lưu thu • +${formatCompactVND(numericPreview)}`
+                          : 'Lưu khoản thu'}
+                  </span>
+                </motion.button>
+              </div>
             </div>
           </motion.div>
 
           {/* Zoom Receipt Lightbox */}
           <AnimatePresence>
-            {zoomReceipt && receiptImage && (
+            {zoomReceipt && resolvedReceiptUrl && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -787,7 +1088,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 className="fixed inset-0 z-60 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
               >
                 <img
-                  src={receiptImage}
+                  src={resolvedReceiptUrl}
                   alt="Phóng to hóa đơn"
                   className="max-h-[85dvh] max-w-full rounded-2xl shadow-2xl object-contain bg-white"
                 />

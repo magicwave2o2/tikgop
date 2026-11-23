@@ -4,6 +4,8 @@ import {
   AlertCircle,
   Camera,
   Check,
+  Cloud,
+  Cpu,
   Edit3,
   FileText,
   ImagePlus,
@@ -15,13 +17,20 @@ import {
 } from 'lucide-react';
 import { useFinance } from '../store/useFinanceStore';
 import type { TransactionDraft } from '../types/finance';
-import { formatCompactVND, formatVND, pad2 } from '../utils/format';
+import {
+  formatCompactVND,
+  formatRawAmount,
+  formatVND,
+  pad2,
+  parseRawAmount,
+} from '../utils/format';
 import {
   type DemoReceiptPreset,
   type ReceiptParseResult,
   generateDemoReceiptImage,
-  scanReceiptWithOCR,
+  scanReceiptSmart,
 } from '../utils/receiptParser';
+import { saveReceiptImage } from '../utils/receiptStorage';
 import { CategoryIconBadge, DynamicIcon } from './IconRenderer';
 
 interface ReceiptScannerModalProps {
@@ -36,9 +45,10 @@ const DEMO_RECEIPTS: Array<{
   sub: string;
   amountHint: string;
 }> = [
-  { id: 'winmart', title: 'Siêu thị WinMart', sub: 'Thực phẩm tươi sống', amountHint: '385k' },
-  { id: 'coffee', title: 'Highlands Coffee', sub: 'Cà phê & bánh mì', amountHint: '125k' },
-  { id: 'evn', title: 'Tiền điện EVN', sub: 'Hóa đơn sinh hoạt', amountHint: '1,42tr' },
+  { id: 'winmart', title: 'Siêu thị WinMart', sub: 'Thực phẩm tươi', amountHint: '385k' },
+  { id: 'coffee', title: 'Highlands Coffee', sub: 'Cà phê & bánh', amountHint: '125k' },
+  { id: 'evn', title: 'Tiền điện EVN', sub: 'Hóa đơn điện', amountHint: '1,42tr' },
+  { id: 'bank', title: 'Chuyển khoản VCB', sub: 'Nhà thuốc Long Châu', amountHint: '350k' },
 ];
 
 export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
@@ -49,13 +59,17 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
   const { state, activeMember, addTransaction } = useFinance();
 
   const [step, setStep] = useState<'idle' | 'camera' | 'scanning' | 'result'>('idle');
+  const [preferAI, setPreferAI] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
   const [error, setError] = useState('');
 
+  // Editable result fields right inside the result review screen (zero extra clicks!)
   const [result, setResult] = useState<ReceiptParseResult | null>(null);
-  const [selectedAmount, setSelectedAmount] = useState<number>(0);
+  const [amountInput, setAmountInput] = useState<string>('');
+  const [noteInput, setNoteInput] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('other_expense');
   const [selectedMemberId, setSelectedMemberId] = useState<string>(activeMember.id);
   const [showRawText, setShowRawText] = useState(false);
 
@@ -63,6 +77,8 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const expenseCategories = state.categories.filter((c) => c.type === 'expense');
 
   const stopCameraStream = () => {
     if (streamRef.current) {
@@ -99,18 +115,25 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
     setStatusText('Đang chuẩn bị ảnh hóa đơn...');
 
     try {
-      const parsed = await scanReceiptWithOCR(source, state.categories, (pct, label) => {
-        setProgress(pct);
-        setStatusText(label);
-      });
+      const parsed = await scanReceiptSmart(
+        source,
+        state.categories,
+        { preferAI },
+        (pct, label) => {
+          setProgress(pct);
+          setStatusText(label);
+        },
+      );
       setResult(parsed);
-      setSelectedAmount(parsed.amount);
+      setAmountInput(parsed.amount > 0 ? formatRawAmount(String(parsed.amount)) : '');
+      setNoteInput(parsed.note);
+      setSelectedCategoryId(parsed.categoryId);
       setStep('result');
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : 'Không thể quét hóa đơn. Vui lòng thử ảnh rõ nét hơn hoặc kiểm tra kết nối khi tải OCR lần đầu.',
+          : 'Không thể quét hóa đơn. Vui lòng thử ảnh rõ nét hơn hoặc thử lại.',
       );
       setStep('idle');
     }
@@ -119,7 +142,6 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
   const handleOpenLiveCamera = async () => {
     setError('');
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      // Fallback to native mobile camera file capture
       nativeCameraInputRef.current?.click();
       return;
     }
@@ -138,7 +160,6 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
         }
       }, 60);
     } catch {
-      // User denied webcam or no live webcam -> fallback to native capture picker
       nativeCameraInputRef.current?.click();
     }
   };
@@ -150,8 +171,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
     void runOCRScan(dataUrl, dataUrl);
   };
@@ -170,28 +190,34 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
     void runOCRScan(dataUrl, dataUrl);
   };
 
-  const buildDraft = (): TransactionDraft => {
+  const selectedAmount = parseRawAmount(amountInput);
+
+  const buildDraft = async (): Promise<TransactionDraft> => {
     const now = new Date();
+    const receiptRef = result?.thumbnailDataUrl
+      ? await saveReceiptImage(result.thumbnailDataUrl)
+      : undefined;
+
     return {
       type: 'expense',
       amount: selectedAmount,
-      categoryId: result?.categoryId || 'other_expense',
+      categoryId: selectedCategoryId || 'other_expense',
       memberId: selectedMemberId,
       date: result?.date,
       time: `${pad2(now.getHours())}:${pad2(now.getMinutes())}`,
-      note: result?.note || 'Hóa đơn đã quét',
+      note: noteInput.trim() || result?.note || 'Hóa đơn đã quét',
       paymentMethod: result?.paymentMethod || 'bank',
-      receiptImage: result?.thumbnailDataUrl,
+      receiptImage: receiptRef,
       source: 'receipt',
     };
   };
 
-  const handleSaveDirectly = () => {
+  const handleSaveDirectly = async () => {
     if (!result || selectedAmount <= 0) {
-      setError('Chưa nhận diện được số tiền hợp lệ. Hãy bấm "Chỉnh sửa chi tiết" để nhập tay.');
+      setError('Vui lòng nhập hoặc chọn số tiền hợp lệ lớn hơn 0.');
       return;
     }
-    const draft = buildDraft();
+    const draft = await buildDraft();
     addTransaction({
       type: 'expense',
       amount: draft.amount || 0,
@@ -207,7 +233,11 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
     onClose();
   };
 
-  const matchedCat = state.categories.find((c) => c.id === result?.categoryId);
+  const handleOpenInFullEditor = async () => {
+    const draft = await buildDraft();
+    onClose();
+    onEditDraft(draft);
+  };
 
   return (
     <AnimatePresence>
@@ -236,10 +266,10 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 </div>
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
-                    Quét & Chụp hóa đơn OCR
+                    Quét & Chụp hóa đơn AI
                   </h2>
                   <p className="text-[11px] text-slate-400">
-                    Tự động đọc giá tiền, cửa hàng & phân loại danh mục
+                    AI Vision đọc bill in, viết tay & ảnh chuyển khoản (tự dự phòng offline)
                   </p>
                 </div>
               </div>
@@ -254,7 +284,6 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
               </button>
             </div>
 
-            {/* Hidden File Inputs */}
             <input
               ref={fileInputRef}
               type="file"
@@ -280,9 +309,37 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 </div>
               )}
 
-              {/* STEP 1: IDLE — Capture / Upload / Demo */}
+              {/* STEP 1: IDLE */}
               {step === 'idle' && (
                 <div className="space-y-4">
+                  {/* Engine mode selector */}
+                  <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80">
+                    <button
+                      type="button"
+                      onClick={() => setPreferAI(true)}
+                      className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        preferAI
+                          ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                    >
+                      <Cloud size={14} />
+                      <span>Cloudflare AI Vision</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreferAI(false)}
+                      className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        !preferAI
+                          ? 'bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-xs'
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                    >
+                      <Cpu size={14} />
+                      <span>OCR Offline trên máy</span>
+                    </button>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <motion.button
                       type="button"
@@ -296,7 +353,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       <div className="text-center">
                         <div className="text-sm font-extrabold">Chụp hóa đơn</div>
                         <div className="text-[11px] text-emerald-50/85 mt-0.5">
-                          Mở camera quét trực tiếp
+                          Bill in hoặc viết tay
                         </div>
                       </div>
                     </motion.button>
@@ -313,36 +370,36 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       <div className="text-center">
                         <div className="text-sm font-extrabold">Chọn ảnh bill</div>
                         <div className="text-[11px] text-slate-400 mt-0.5">
-                          Ảnh chụp hoặc chuyển khoản
+                          Thư viện / Chuyển khoản
                         </div>
                       </div>
                     </motion.button>
                   </div>
 
-                  {/* Interactive Demo Receipts running real Tesseract OCR */}
+                  {/* Interactive Demo Receipts (including Bank Transfer screenshot!) */}
                   <div className="p-4 rounded-3xl bg-slate-50/90 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800">
                     <div className="flex items-center gap-1.5 mb-2.5">
                       <Sparkles size={14} className="text-amber-500" />
                       <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200">
-                        Thử quét OCR ngay với hóa đơn mẫu
+                        Thử quét ngay với hóa đơn & chuyển khoản mẫu
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {DEMO_RECEIPTS.map((demo) => (
                         <motion.button
                           key={demo.id}
                           type="button"
-                          whileTap={{ scale: 0.94 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => handleRunDemoReceipt(demo.id)}
                           className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 hover:border-emerald-500 text-left transition-all cursor-pointer"
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <Receipt size={15} className="text-emerald-500" />
+                            <Receipt size={14} className="text-emerald-500" />
                             <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
                               {demo.amountHint}
                             </span>
                           </div>
-                          <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100 leading-tight line-clamp-1">
+                          <div className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight truncate">
                             {demo.title}
                           </div>
                           <div className="text-[10px] text-slate-400 truncate mt-0.5">
@@ -352,14 +409,10 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       ))}
                     </div>
                   </div>
-
-                  <p className="text-[11px] text-slate-400 text-center leading-relaxed px-2">
-                    Mẹo: Chụp hóa đơn phẳng, đủ sáng và thấy rõ dòng <strong>TỔNG CỘNG</strong> để hệ thống tách giá tiền chuẩn xác nhất.
-                  </p>
                 </div>
               )}
 
-              {/* STEP 2: LIVE CAMERA VIEWFINDER */}
+              {/* STEP 2: LIVE CAMERA */}
               {step === 'camera' && (
                 <div className="space-y-3">
                   <div className="relative rounded-3xl overflow-hidden bg-slate-950 aspect-[3/4] max-h-[55dvh] mx-auto">
@@ -369,7 +422,6 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       muted
                       className="w-full h-full object-cover"
                     />
-                    {/* Scanner corner framing overlay */}
                     <div className="pointer-events-none absolute inset-6 border-2 border-white/25 rounded-2xl">
                       <div className="absolute -top-0.5 -left-0.5 w-7 h-7 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl" />
                       <div className="absolute -top-0.5 -right-0.5 w-7 h-7 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl" />
@@ -407,7 +459,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 </div>
               )}
 
-              {/* STEP 3: SCANNING WITH LASER ANIMATION */}
+              {/* STEP 3: SCANNING */}
               {step === 'scanning' && (
                 <div className="space-y-4 py-2">
                   <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-700 max-h-64 flex items-center justify-center">
@@ -418,7 +470,6 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                         className="max-h-64 w-auto object-contain opacity-90"
                       />
                     )}
-                    {/* Sweeping emerald scanline */}
                     <motion.div
                       initial={{ top: '6%' }}
                       animate={{ top: ['6%', '88%', '6%'] }}
@@ -443,46 +494,90 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                 </div>
               )}
 
-              {/* STEP 4: EXTRACTED RESULT REVIEW */}
+              {/* STEP 4: INLINE-EDITABLE RESULT REVIEW */}
               {step === 'result' && result && (
-                <div className="space-y-4">
-                  {/* Top Summary Card with Thumbnail + Detected Amount */}
-                  <div className="flex items-start gap-3.5 p-4 rounded-3xl bg-emerald-500/8 border border-emerald-500/25">
+                <div className="space-y-3.5">
+                  {/* Engine Indicator Pill */}
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold ${
+                        result.engine === 'cloudflare-ai'
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-sky-500/15 text-sky-700 dark:text-sky-300'
+                      }`}
+                    >
+                      {result.engine === 'cloudflare-ai' ? (
+                        <>
+                          <Cloud size={12} />
+                          <span>Cloudflare AI Vision</span>
+                        </>
+                      ) : (
+                        <>
+                          <Cpu size={12} />
+                          <span>OCR Ngoại tuyến trên máy</span>
+                        </>
+                      )}
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-400 tabular-nums">
+                      Ngày bill: {result.date}
+                    </span>
+                  </div>
+
+                  {/* Thumbnail + Directly Editable Amount & Note */}
+                  <div className="flex items-start gap-3 p-3.5 rounded-3xl bg-emerald-500/8 border border-emerald-500/25">
                     {result.thumbnailDataUrl && (
                       <img
                         src={result.thumbnailDataUrl}
                         alt="Ảnh hóa đơn"
-                        className="w-16 h-20 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 bg-white"
+                        className="w-16 h-22 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 bg-white"
                       />
                     )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                        Giá tiền tự động tách từ hóa đơn
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                          Tổng tiền (chạm để sửa nhanh)
+                        </label>
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={amountInput}
+                            onChange={(e) => {
+                              setAmountInput(formatRawAmount(e.target.value));
+                              setError('');
+                            }}
+                            placeholder="0"
+                            className="w-full bg-white/80 dark:bg-slate-900/70 px-2.5 py-1 rounded-xl text-xl font-extrabold text-slate-900 dark:text-white tabular-nums border border-emerald-500/30 focus:outline-none focus:border-emerald-500"
+                          />
+                          <span className="text-base font-extrabold text-slate-500">₫</span>
+                        </div>
                       </div>
-                      <div className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums mt-0.5">
-                        {selectedAmount > 0 ? formatVND(selectedAmount) : 'Chưa nhận diện'}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-1">
-                        {result.note} • {result.date}
-                      </div>
+
+                      <input
+                        type="text"
+                        value={noteInput}
+                        onChange={(e) => setNoteInput(e.target.value)}
+                        placeholder="Ghi chú hóa đơn..."
+                        className="w-full bg-white/80 dark:bg-slate-900/70 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:border-emerald-500"
+                      />
                     </div>
                   </div>
 
-                  {/* Alternative detected amounts pills (in case user wants to pick another total on bill) */}
+                  {/* Alternative detected amounts pills */}
                   {result.candidateAmounts.length > 1 && (
                     <div>
-                      <span className="block text-[11px] font-bold text-slate-400 mb-1.5">
-                        Các mức tiền khác đọc được trên bill (chạm để đổi):
+                      <span className="block text-[10.5px] font-bold text-slate-400 mb-1.5">
+                        Các số tiền khác trên hóa đơn (chạm để chọn):
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {result.candidateAmounts.map((amt) => (
                           <button
                             key={amt}
                             type="button"
-                            onClick={() => setSelectedAmount(amt)}
+                            onClick={() => setAmountInput(formatRawAmount(String(amt)))}
                             className={`px-2.5 py-1 rounded-xl text-xs font-bold tabular-nums transition-all cursor-pointer ${
                               selectedAmount === amt
-                                ? 'bg-emerald-500 text-white shadow-sm'
+                                ? 'bg-emerald-500 text-white shadow-xs'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15'
                             }`}
                           >
@@ -493,70 +588,87 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                     </div>
                   )}
 
-                  {/* Auto-classified Category + Member Picker */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 flex items-center gap-3">
-                      <CategoryIconBadge
-                        icon={matchedCat?.icon || 'MoreHorizontal'}
-                        color={matchedCat?.color || '#64748B'}
-                        size="sm"
-                      />
-                      <div className="min-w-0">
-                        <div className="text-[10px] font-bold uppercase text-slate-400">
-                          Tự động phân loại
-                        </div>
-                        <div className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
-                          {matchedCat?.name || 'Chi khác'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60">
-                      <div className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">
-                        Người chi tiêu
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {state.members.map((m) => {
-                          const active = selectedMemberId === m.id;
-                          return (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => setSelectedMemberId(m.id)}
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                                active
-                                  ? 'text-white'
-                                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300'
-                              }`}
-                              style={active ? { backgroundColor: m.color } : undefined}
-                            >
-                              <DynamicIcon name={m.icon} size={11} />
-                              <span>{m.name}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Collapsible raw OCR text */}
+                  {/* Inline 1-Tap Category Strip */}
                   <div>
-                    <button
-                      type="button"
-                      onClick={() => setShowRawText((v) => !v)}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
-                    >
-                      <FileText size={13} />
-                      <span>{showRawText ? 'Ẩn văn bản OCR' : 'Xem văn bản OCR đã đọc'}</span>
-                    </button>
-                    {showRawText && (
-                      <pre className="mt-2 p-3 rounded-2xl bg-slate-100 dark:bg-slate-900 text-[11px] text-slate-600 dark:text-slate-300 whitespace-pre-wrap max-h-32 overflow-y-auto font-mono">
-                        {result.rawText || '(Không đọc được chữ nào)'}
-                      </pre>
-                    )}
+                    <span className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Phân loại (chạm để đổi nhanh)
+                    </span>
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                      {expenseCategories.map((cat) => {
+                        const active = selectedCategoryId === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => setSelectedCategoryId(cat.id)}
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                              active
+                                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-xs'
+                                : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
+                            }`}
+                          >
+                            <CategoryIconBadge
+                              icon={cat.icon}
+                              color={cat.color}
+                              size="sm"
+                              active={active}
+                              className="!w-6 !h-6 !rounded-lg"
+                            />
+                            <span>{cat.shortName}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Action Buttons */}
+                  {/* Inline Member Picker */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60">
+                    <div className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">
+                      Người chi tiêu
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      {state.members.map((m) => {
+                        const active = selectedMemberId === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setSelectedMemberId(m.id)}
+                            className={`inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                              active
+                                ? 'text-white shadow-xs'
+                                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300'
+                            }`}
+                            style={active ? { backgroundColor: m.color } : undefined}
+                          >
+                            <DynamicIcon name={m.icon} size={11} />
+                            <span className="truncate">{m.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Collapsible raw text */}
+                  {result.rawText && (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowRawText((v) => !v)}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        <FileText size={13} />
+                        <span>{showRawText ? 'Ẩn nội dung đã đọc' : 'Xem nội dung đọc được từ bill'}</span>
+                      </button>
+                      {showRawText && (
+                        <pre className="mt-2 p-3 rounded-2xl bg-slate-100 dark:bg-slate-900 text-[11px] text-slate-600 dark:text-slate-300 whitespace-pre-wrap max-h-28 overflow-y-auto font-mono">
+                          {result.rawText}
+                        </pre>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Footer Actions */}
                   <div className="grid grid-cols-12 gap-2 pt-1 pb-safe">
                     <button
                       type="button"
@@ -569,26 +681,24 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => {
-                        const draft = buildDraft();
-                        onClose();
-                        onEditDraft(draft);
-                      }}
-                      className="col-span-5 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                      onClick={() => void handleOpenInFullEditor()}
+                      className="col-span-4 flex items-center justify-center gap-1 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
                     >
-                      <Edit3 size={15} />
-                      <span>Chỉnh sửa</span>
+                      <Edit3 size={14} />
+                      <span>Chi tiết</span>
                     </button>
 
                     <motion.button
                       type="button"
                       whileTap={{ scale: 0.96 }}
-                      onClick={handleSaveDirectly}
+                      onClick={() => void handleSaveDirectly()}
                       disabled={selectedAmount <= 0}
-                      className="col-span-5 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-extrabold shadow-lg shadow-emerald-500/30 disabled:opacity-40 cursor-pointer"
+                      className="col-span-6 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-extrabold shadow-lg shadow-emerald-500/30 disabled:opacity-40 cursor-pointer"
                     >
                       <Check size={16} strokeWidth={2.5} />
-                      <span>Lưu ngay</span>
+                      <span>
+                        {selectedAmount > 0 ? `Lưu • ${formatCompactVND(selectedAmount)}` : 'Lưu ngay'}
+                      </span>
                     </motion.button>
                   </div>
                 </div>

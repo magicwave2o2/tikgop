@@ -5,6 +5,7 @@ import {
   DEFAULT_SETTINGS,
   generateSampleTransactions,
 } from '../data/defaults';
+import { saveReceiptImage } from '../utils/receiptStorage';
 import type {
   Category,
   FamilyMember,
@@ -32,6 +33,7 @@ interface FinanceContextValue {
   undoDelete: () => void;
   setActiveMember: (memberId: string, silent?: boolean) => void;
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt'>) => Transaction;
+  addTransactionsBatch: (txs: Array<Omit<Transaction, 'id' | 'createdAt'>>) => Transaction[];
   updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => void;
   deleteTransaction: (id: string) => void;
   addCategory: (cat: Omit<Category, 'id' | 'isCustom'>) => void;
@@ -221,6 +223,36 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const dismissToast = useCallback(() => setToast(null), []);
 
+  // Migrate any legacy inline base64 receipt images out of localStorage into IndexedDB
+  useEffect(() => {
+    const legacyWithBase64 = state.transactions.filter(
+      (tx) => tx.receiptImage && tx.receiptImage.startsWith('data:image/'),
+    );
+    if (legacyWithBase64.length === 0) return;
+
+    let cancelled = false;
+    void (async () => {
+      const updates = new Map<string, string>();
+      for (const tx of legacyWithBase64) {
+        if (!tx.receiptImage) continue;
+        const ref = await saveReceiptImage(tx.receiptImage);
+        if (ref !== tx.receiptImage) updates.set(tx.id, ref);
+      }
+      if (!cancelled && updates.size > 0) {
+        setState((prev) => ({
+          ...prev,
+          transactions: prev.transactions.map((tx) =>
+            updates.has(tx.id) ? { ...tx, receiptImage: updates.get(tx.id) } : tx,
+          ),
+        }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state.transactions]);
+
   const addTransaction = useCallback((input: Omit<Transaction, 'id' | 'createdAt'>) => {
     const created: Transaction = {
       ...input,
@@ -236,6 +268,31 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
     return created;
   }, []);
+
+  const addTransactionsBatch = useCallback(
+    (inputs: Array<Omit<Transaction, 'id' | 'createdAt'>>) => {
+      const baseTs = Date.now();
+      const createdList: Transaction[] = inputs.map((input, idx) => ({
+        ...input,
+        id: `tx_${baseTs}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+        createdAt: baseTs + (inputs.length - idx),
+      }));
+      setState((prev) => ({
+        ...prev,
+        transactions: [...createdList, ...prev.transactions],
+      }));
+      setToast({
+        message:
+          createdList.length === 1
+            ? createdList[0].type === 'expense'
+              ? 'Đã ghi nhận khoản chi mới'
+              : 'Đã ghi nhận khoản thu mới'
+            : `Đã ghi nhận nhanh ${createdList.length} giao dịch mới`,
+      });
+      return createdList;
+    },
+    [],
+  );
 
   const updateTransaction = useCallback(
     (id: string, updates: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => {
@@ -455,6 +512,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       undoDelete,
       setActiveMember,
       addTransaction,
+      addTransactionsBatch,
       updateTransaction,
       deleteTransaction,
       addCategory,
@@ -479,6 +537,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       undoDelete,
       setActiveMember,
       addTransaction,
+      addTransactionsBatch,
       updateTransaction,
       deleteTransaction,
       addCategory,

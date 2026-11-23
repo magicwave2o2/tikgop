@@ -9,6 +9,7 @@ import {
 } from './categoryClassifier';
 
 export interface VoiceParseResult {
+  id: string;
   transcript: string;
   type: TransactionType;
   amount: number;
@@ -36,10 +37,9 @@ const VI_WORD_DIGITS: Record<string, number> = {
   muoi: 10,
 };
 
-/**
- * Converts spoken Vietnamese number words (e.g., "hai tram nam muoi", "mot tram ruoi", "chin muoi lam")
- * into numeric values so speech transcripts without digits parse accurately.
- */
+const WORD_NUM_PATTERN =
+  '(?:mot|hai|ba|bon|tu|nam|lam|sau|bay|tam|chin|muoi)(?:\\s+(?:muoi|lam|mot|hai|ba|bon|tu|nam|sau|bay|tam|chin))?';
+
 function parseVietnameseSmallNumber(phrase: string): number | null {
   const tokens = phrase.trim().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return null;
@@ -109,19 +109,17 @@ function parseVietnameseSmallNumber(phrase: string): number | null {
 }
 
 /**
- * Extracts VND amount from natural Vietnamese speech or text.
- * Supports:
- * - "1 triệu 450 nghìn", "1 triệu rưỡi", "1,5 triệu", "1tr5", "2 triệu 3"
- * - "450 nghìn", "450 ngàn", "450k", "85k"
- * - "một triệu rưỡi", "hai trăm năm mươi nghìn", "một trăm rưỡi", "năm mươi ngàn"
- * - "450.000", "450,000", "1420000"
+ * Extracts VND amount from natural Vietnamese speech, including regional slang:
+ * - Standard: "1 triệu 450 nghìn", "1 triệu rưỡi", "1,5tr", "450k", "450 nghìn", "hai trăm rưỡi"
+ * - Slang: "1 củ rưỡi", "hai củ ba" (1 củ = 1tr), "2 lít", "1 lít 2", "năm xị", "nửa lít" (1 lít/xị = 100k),
+ *          "ba chục", "5 chục nghìn", "4 chục rưỡi" (1 chục = 10k)
  */
 export function extractVietnameseAmount(rawText: string): number {
   const norm = normalizeVietnamese(rawText);
 
-  // 1. Numeric triệu patterns: "1 trieu 450 nghin", "1 trieu ruoi", "1,5 trieu", "1tr5", "2 trieu 3"
+  // 1. Numeric triệu / củ patterns: "1 trieu 450 nghin", "1 cu ruoi", "1,5tr", "2 cu 3"
   const trieuNumeric = norm.match(
-    /(\d+(?:[.,]\d+)?)\s*(?:trieu|tr|cu)\s*(?:(ruoi)|(\d{1,3})\s*(?:nghin|ngan|k)?)?/,
+    /(\d+(?:[.,]\d+)?)\s*(?:trieu|tr|cu)\b\s*(?:(ruoi)|(\d{1,3})\s*(?:nghin|ngan|k)?)?/,
   );
   if (trieuNumeric) {
     const baseStr = trieuNumeric[1].replace(',', '.');
@@ -137,9 +135,11 @@ export function extractVietnameseAmount(rawText: string): number {
     return Math.round(value);
   }
 
-  // 2. Spoken word triệu patterns: "mot trieu ruoi", "hai trieu ba tram nghin"
+  // 2. Spoken word triệu / củ patterns: "mot trieu ruoi", "hai cu ba", "mot cu nam tram nghin"
   const trieuWord = norm.match(
-    /\b((?:mot|hai|ba|bon|tu|nam|sau|bay|tam|chin|muoi)(?:\s+(?:muoi|lam|mot|hai|ba|bon|tu|nam|sau|bay|tam|chin))?)\s+trieu(?:\s+(ruoi)|(?:\s+([a-z\s]+?))(?:\s+(?:nghin|ngan|dong)|$))?/,
+    new RegExp(
+      `\\b(${WORD_NUM_PATTERN})\\s+(?:trieu|cu)\\b(?:\\s+(ruoi)|(?:\\s+([a-z\\s]+?))(?:\\s+(?:nghin|ngan|dong)|$))?`,
+    ),
   );
   if (trieuWord) {
     const main = parseVietnameseSmallNumber(trieuWord[1]) || 0;
@@ -155,7 +155,59 @@ export function extractVietnameseAmount(rawText: string): number {
     if (total > 0) return total;
   }
 
-  // 3. Numeric nghìn / ngàn / k / trăm rưỡi patterns
+  // 3. Colloquial lít / xị (1 lít = 1 xị = 100.000 ₫; nửa lít/xị = 50.000 ₫)
+  if (/\bnua\s+(?:lit|xi)\b/.test(norm)) {
+    return 50_000;
+  }
+
+  const litNumeric = norm.match(
+    /(\d+(?:[.,]\d+)?)\s*(?:lit|xi)\b\s*(?:(ruoi)|(\d{1,2})\b)?/,
+  );
+  if (litNumeric) {
+    let value = parseFloat(litNumeric[1].replace(',', '.')) * 100_000;
+    if (litNumeric[2] === 'ruoi') {
+      value += 50_000;
+    } else if (litNumeric[3]) {
+      const sub = litNumeric[3];
+      value += sub.length === 1 ? Number(sub) * 10_000 : Number(sub) * 1_000;
+    }
+    return Math.round(value);
+  }
+
+  const litWord = norm.match(
+    new RegExp(`\\b(${WORD_NUM_PATTERN})\\s+(?:lit|xi)\\b(?:\\s+(ruoi)|\\s+(${WORD_NUM_PATTERN})\\b)?`),
+  );
+  if (litWord) {
+    const main = parseVietnameseSmallNumber(litWord[1]) || 0;
+    let value = main * 100_000;
+    if (litWord[2] === 'ruoi') {
+      value += 50_000;
+    } else if (litWord[3]) {
+      const sub = parseVietnameseSmallNumber(litWord[3]);
+      if (sub !== null && sub < 10) value += sub * 10_000;
+    }
+    if (value > 0) return value;
+  }
+
+  // 4. Colloquial chục (1 chục = 10.000 ₫: "4 chục", "ba chục nghìn", "5 chục rưỡi")
+  const chucNumeric = norm.match(/(\d+)\s*chuc(?:\s*(ruoi))?(?:\s*(?:nghin|ngan|k))?\b/);
+  if (chucNumeric) {
+    let value = Number(chucNumeric[1]) * 10_000;
+    if (chucNumeric[2] === 'ruoi') value += 5_000;
+    if (value > 0) return value;
+  }
+
+  const chucWord = norm.match(
+    new RegExp(`\\b(${WORD_NUM_PATTERN})\\s+chuc(?:\\s+(ruoi))?(?:\\s+(?:nghin|ngan))?\\b`),
+  );
+  if (chucWord) {
+    const main = parseVietnameseSmallNumber(chucWord[1]) || 0;
+    let value = main * 10_000;
+    if (chucWord[2] === 'ruoi') value += 5_000;
+    if (value > 0) return value;
+  }
+
+  // 5. Numeric nghìn / ngàn / k / trăm rưỡi
   const tramRuoiNumeric = norm.match(/(\d+)\s*tram\s*ruoi/);
   if (tramRuoiNumeric) {
     return (Number(tramRuoiNumeric[1]) * 100 + 50) * 1_000;
@@ -167,7 +219,7 @@ export function extractVietnameseAmount(rawText: string): number {
     return Math.round(val * 1_000);
   }
 
-  // 4. Spoken word nghìn / ngàn / trăm rưỡi: "hai tram ruoi", "nam muoi nghin", "mot tram hai muoi ngan"
+  // 6. Spoken word nghìn / ngàn / trăm rưỡi
   const spokenTramRuoi = norm.match(
     /\b(mot|hai|ba|bon|tu|nam|sau|bay|tam|chin)\s+tram\s+ruoi\b/,
   );
@@ -184,21 +236,23 @@ export function extractVietnameseAmount(rawText: string): number {
     if (val && val > 0) return val * 1_000;
   }
 
-  // 5. Formatted currency number like "450.000", "1.420.000", "385,000", or bare integer >= 1000
+  // 7. Formatted currency numbers like "450.000", "1.420.000", "385,000"
   const formattedMatches = norm.match(/\b\d{1,3}(?:[.,]\d{3})+\b/g);
   if (formattedMatches && formattedMatches.length > 0) {
     const nums = formattedMatches.map((m) => Number(m.replace(/[.,]/g, '')));
     return Math.max(...nums);
   }
 
-  // Avoid confusing dates like "15/11" or "ngày 20" with money
+  // 8. Bare integer >= 1000 (excluding dates & years)
   const strippedDates = norm
     .replace(/\bngay\s+\d{1,2}(?:\/\d{1,2}(?:\/\d{2,4})?)?\b/g, ' ')
     .replace(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g, ' ');
 
   const plainNums = strippedDates.match(/\b\d{4,9}\b/g);
   if (plainNums && plainNums.length > 0) {
-    const valid = plainNums.map(Number).filter((n) => n >= 1000 && n !== 2025 && n !== 2026 && n !== 2027);
+    const valid = plainNums
+      .map(Number)
+      .filter((n) => n >= 1000 && n !== 2025 && n !== 2026 && n !== 2027);
     if (valid.length > 0) return Math.max(...valid);
   }
 
@@ -213,7 +267,6 @@ export function extractVietnameseDate(rawText: string): string {
   if (norm.includes('hom kia')) return toDateKey(addDays(today, -2));
   if (norm.includes('hom nay')) return toDateKey(today);
 
-  // Match "ngày 15/11" or "15/11/2026"
   const fullDate = norm.match(/\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b/);
   if (fullDate) {
     const day = Number(fullDate[1]);
@@ -225,7 +278,6 @@ export function extractVietnameseDate(rawText: string): string {
     }
   }
 
-  // Match "ngày 15"
   const dayOnly = norm.match(/\bngay\s+(\d{1,2})\b/);
   if (dayOnly) {
     const day = Number(dayOnly[1]);
@@ -239,13 +291,19 @@ export function extractVietnameseDate(rawText: string): string {
 
 function buildCleanVoiceNote(rawText: string, matchedMemberName?: string): string {
   let note = rawText.trim();
-  // Remove leading time/filler phrases while keeping natural Vietnamese accents
   note = note
     .replace(/^(hôm nay|hôm qua|hôm kia|sáng nay|trưa nay|chiều nay|tối nay)\s+/i, '')
-    .replace(/\b(hết|tổng cộng|khoảng|giá|với giá)\s+\d[\d.,\s]*(triệu|tr|nghìn|ngàn|k|đồng|đ|vnd)?/gi, '')
-    .replace(/\b\d+(?:[.,]\d+)?\s*(triệu|tr|nghìn|ngàn|k|đồng|đ|vnd)\b/gi, '')
+    .replace(
+      /\b(hết|tổng cộng|khoảng|giá|với giá)?\s*\d+(?:[.,]\d+)?\s*(triệu|tr|củ|lít|xị|chục|nghìn|ngàn|k|đồng|đ|vnd)(?:\s+(rưỡi|\d{1,3}\s*(?:nghìn|ngàn|k)?))?/gi,
+      '',
+    )
+    .replace(
+      /\b(nửa|một|hai|ba|bốn|tư|năm|sáu|bảy|tám|chín|mười)(?:\s+(?:mươi|lăm|một|hai|ba|bốn|năm|sáu|bảy|tám|chín|trăm))*\s*(triệu|củ|lít|xị|chục|nghìn|ngàn)(?:\s+rưỡi)?\b/gi,
+      '',
+    )
     .replace(/\b(bằng\s+)?(tiền mặt|chuyển khoản|thẻ tín dụng|ví điện tử|momo)\b/gi, '')
     .replace(/\s+/g, ' ')
+    .replace(/^[,.\-;\s]+|[,.\-;\s]+$/g, '')
     .trim();
 
   if (matchedMemberName) {
@@ -262,17 +320,42 @@ export function parseVietnameseVoiceExpense(
   categories: Category[],
   members: FamilyMember[],
   defaultMemberId: string,
+  inherited?: {
+    date?: string;
+    paymentMethod?: PaymentMethod;
+    fallbackCategoryId?: string;
+    index?: number;
+  },
 ): VoiceParseResult {
   const type = detectTransactionType(transcript);
   const amount = extractVietnameseAmount(transcript);
-  const categoryId = detectCategoryFromText(transcript, type, categories);
+  const detectedCat = detectCategoryFromText(transcript, type, categories);
+  const otherFallback = type === 'income' ? 'other_income' : 'other_expense';
+  const categoryId =
+    detectedCat === otherFallback && inherited?.fallbackCategoryId
+      ? inherited.fallbackCategoryId
+      : detectedCat;
+
   const memberRes = detectMemberFromText(transcript, members, defaultMemberId);
-  const date = extractVietnameseDate(transcript);
-  const paymentMethod = detectPaymentMethodFromText(transcript) || 'cash';
+  const ownDateNorm = normalizeVietnamese(transcript);
+  const hasExplicitDate =
+    ownDateNorm.includes('hom qua') ||
+    ownDateNorm.includes('hom kia') ||
+    ownDateNorm.includes('hom nay') ||
+    /\b\d{1,2}[/-]\d{1,2}\b/.test(ownDateNorm) ||
+    /\bngay\s+\d{1,2}\b/.test(ownDateNorm);
+
+  const date = hasExplicitDate
+    ? extractVietnameseDate(transcript)
+    : inherited?.date || extractVietnameseDate(transcript);
+
+  const paymentMethod =
+    detectPaymentMethodFromText(transcript) || inherited?.paymentMethod || 'cash';
   const note = buildCleanVoiceNote(transcript, memberRes.matchedName);
 
   return {
-    transcript,
+    id: `voice_${inherited?.index ?? 0}_${amount}_${categoryId}`,
+    transcript: transcript.trim(),
     type,
     amount,
     categoryId,
@@ -284,10 +367,60 @@ export function parseVietnameseVoiceExpense(
   };
 }
 
+/**
+ * Supports multi-item Vietnamese spoken sentences!
+ * Example: "Hôm nay Mẹ Trang đi chợ mua thịt 120k, rau 4 chục, trái cây 65 nghìn"
+ * -> Splits into 3 separate transactions inheriting shared context (Mẹ Trang, Hôm nay, Đi chợ).
+ */
+export function parseVietnameseVoiceBatch(
+  transcript: string,
+  categories: Category[],
+  members: FamilyMember[],
+  defaultMemberId: string,
+): VoiceParseResult[] {
+  const clean = transcript.trim();
+  if (!clean) return [];
+
+  // Shared context from the full utterance
+  const globalDate = extractVietnameseDate(clean);
+  const globalMember = detectMemberFromText(clean, members, defaultMemberId);
+  const globalPayment = detectPaymentMethodFromText(clean);
+
+  // Split candidate segments on commas, semicolons, newlines, or Vietnamese conjunctions
+  const rawSegments = clean
+    .split(/(?:[,;\n]+|\s+(?:và|với|thêm|rồi)\s+)/i)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2);
+
+  // Check how many segments have their own money amount
+  const segmentsWithMoney = rawSegments.filter((seg) => extractVietnameseAmount(seg) >= 1_000);
+
+  if (segmentsWithMoney.length >= 2) {
+    // Inherit first segment's category as fallback for short trailing items (e.g. "đi chợ mua thịt 120k, rau 4 chục")
+    const firstCat = detectCategoryFromText(segmentsWithMoney[0], 'expense', categories);
+    const fallbackCat = firstCat !== 'other_expense' ? firstCat : undefined;
+
+    return segmentsWithMoney.map((seg, idx) =>
+      parseVietnameseVoiceExpense(seg, categories, members, globalMember.memberId, {
+        date: globalDate,
+        paymentMethod: globalPayment,
+        fallbackCategoryId: idx > 0 ? fallbackCat : undefined,
+        index: idx,
+      }),
+    );
+  }
+
+  return [
+    parseVietnameseVoiceExpense(clean, categories, members, defaultMemberId, {
+      index: 0,
+    }),
+  ];
+}
+
 export const VOICE_SAMPLE_PHRASES = [
-  'Hôm nay Mẹ Trang đi siêu thị WinMart hết 450 nghìn',
-  'Cha Bình đổ xăng xe máy 120k tiền mặt',
+  'Mẹ Trang đi chợ mua thịt 120k, rau 4 chục, trái cây 65 nghìn',
+  'Cha Bình đổ xăng 1 lít 2 và ăn sáng 65k tiền mặt',
   'Minh Phát mua sách vở Fahasa 85 ngàn',
-  'Mai Anh uống trà sữa 65 nghìn ví điện tử',
-  'Hôm qua đóng tiền điện 1 triệu 420 nghìn chuyển khoản',
+  'Mai Anh uống trà sữa 5 chục ví điện tử',
+  'Hôm qua đóng tiền điện 1 củ 420 nghìn chuyển khoản',
 ];

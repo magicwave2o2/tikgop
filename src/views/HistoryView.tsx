@@ -7,6 +7,7 @@ import {
   ListFilter,
   Plus,
   Search,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { DynamicIcon } from '../components/IconRenderer';
@@ -46,11 +47,12 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const [calMonth, setCalMonth] = useState(today.getMonth());
   const [selectedDateKey, setSelectedDateKey] = useState<string>(toDateKey(today));
 
-  // Search & filter states
+  // Search & collapsible filter states
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | TransactionType>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [memberFilter, setMemberFilter] = useState<string>('all');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [visibleGroupsCount, setVisibleGroupsCount] = useState<number>(15);
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     if (initialCategoryFilter) {
       setCategoryFilter(initialCategoryFilter);
       setMode('list');
+      setFiltersOpen(true);
       onClearInitialCategory?.();
     }
   }, [initialCategoryFilter, onClearInitialCategory]);
@@ -74,7 +77,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     [state.members],
   );
 
-  // Calendar grid & daily totals map
   const calendarCells = useMemo(
     () => getMonthCalendarGrid(calYear, calMonth),
     [calYear, calMonth],
@@ -119,7 +121,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     return { expense, income };
   }, [selectedDayTxs]);
 
-  // Filtered full list
   const filteredTransactions = useMemo(() => {
     const q = query.trim().toLowerCase();
     return state.transactions.filter((tx) => {
@@ -162,24 +163,30 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
   const selectedHeader = formatVietnameseDateHeader(selectedDateKey);
 
+  const extraFilterCount =
+    (categoryFilter !== 'all' ? 1 : 0) + (memberFilter !== 'all' ? 1 : 0);
+
   const hasActiveFilters =
     query.trim() !== '' ||
     typeFilter !== 'all' ||
     categoryFilter !== 'all' ||
     memberFilter !== 'all';
 
+  const activeCategoryObj = categoryFilter !== 'all' ? catMap.get(categoryFilter) : undefined;
+  const activeMemberObj = memberFilter !== 'all' ? memMap.get(memberFilter) : undefined;
+
   return (
-    <div className="space-y-5">
-      {/* Top Mode Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+    <div className="space-y-4">
+      {/* Compact Single-Row Header + Mode Switcher */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
           Lịch sử
         </h2>
 
-        <div className="grid grid-cols-2 p-1 rounded-2xl bg-white dark:bg-[#141923] border border-slate-200/70 dark:border-slate-800 shadow-xs w-full sm:w-64">
+        <div className="inline-grid grid-cols-2 p-1 rounded-2xl bg-white dark:bg-[#121721] border border-slate-200/70 dark:border-slate-800 shadow-xs">
           {(
             [
-              { id: 'calendar', label: 'Lịch tháng', icon: CalendarIcon },
+              { id: 'calendar', label: 'Lịch', icon: CalendarIcon },
               { id: 'list', label: 'Danh sách', icon: ListFilter },
             ] as const
           ).map((tab) => {
@@ -190,7 +197,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setMode(tab.id)}
-                className={`relative flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors z-10 cursor-pointer ${
+                className={`relative flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors z-10 cursor-pointer ${
                   active ? 'text-white' : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
@@ -201,7 +208,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-sm -z-10"
                   />
                 )}
-                <Icon size={14} />
+                <Icon size={13} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -216,78 +223,81 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18 }}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-5"
+            transition={{ duration: 0.16 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-4"
           >
-            {/* Interactive Month Calendar */}
-            <section className="lg:col-span-7 card-surface rounded-3xl p-4 sm:p-5">
+            {/* Interactive Month Heatmap Calendar */}
+            <section className="lg:col-span-7 card-surface rounded-3xl p-3.5 sm:p-5">
               {/* Calendar Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-1.5">
                   <motion.button
                     type="button"
                     whileTap={{ scale: 0.9 }}
                     onClick={() => shiftMonth(-1)}
-                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 transition-colors cursor-pointer"
                     aria-label="Tháng trước"
                   >
-                    <ChevronLeft size={17} />
+                    <ChevronLeft size={16} />
                   </motion.button>
-                  <div className="px-2">
-                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                      Tháng {calMonth + 1}, {calYear}
-                    </h3>
-                  </div>
+                  <h3 className="px-1.5 text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tabular-nums">
+                    Tháng {calMonth + 1}/{calYear}
+                  </h3>
                   <motion.button
                     type="button"
                     whileTap={{ scale: 0.9 }}
                     onClick={() => shiftMonth(1)}
-                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 transition-colors cursor-pointer"
                     aria-label="Tháng sau"
                   >
-                    <ChevronRight size={17} />
+                    <ChevronRight size={16} />
                   </motion.button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCalYear(today.getFullYear());
-                    setCalMonth(today.getMonth());
-                    setSelectedDateKey(toDateKey(today));
-                  }}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                >
-                  Hôm nay
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-[11px] font-bold tabular-nums">
+                    <span className="text-rose-500">-{formatCompactVND(monthTotals.expense)}</span>
+                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      +{formatCompactVND(monthTotals.income)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCalYear(today.getFullYear());
+                      setCalMonth(today.getMonth());
+                      setSelectedDateKey(toDateKey(today));
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                  >
+                    Hôm nay
+                  </button>
+                </div>
               </div>
 
-              {/* Month summary strip */}
-              <div className="grid grid-cols-2 gap-2.5 mb-4">
-                <div className="px-3.5 py-2.5 rounded-2xl bg-rose-500/8 border border-rose-500/15 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                    Tổng chi tháng
-                  </span>
-                  <span className="text-sm font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">
+              {/* Mobile compact month summary bar */}
+              <div className="sm:hidden grid grid-cols-2 gap-2 mb-3">
+                <div className="px-3 py-1.5 rounded-xl bg-rose-500/8 border border-rose-500/12 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-rose-500">Chi</span>
+                  <span className="font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">
                     {formatCompactVND(monthTotals.expense)}
                   </span>
                 </div>
-                <div className="px-3.5 py-2.5 rounded-2xl bg-emerald-500/8 border border-emerald-500/15 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    Tổng thu tháng
-                  </span>
-                  <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                <div className="px-3 py-1.5 rounded-xl bg-emerald-500/8 border border-emerald-500/12 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">Thu</span>
+                  <span className="font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
                     {formatCompactVND(monthTotals.income)}
                   </span>
                 </div>
               </div>
 
               {/* Weekday headers */}
-              <div className="grid grid-cols-7 gap-1 mb-1.5">
+              <div className="grid grid-cols-7 gap-1 mb-1">
                 {WEEKDAYS_SHORT_VI.map((dayName, idx) => (
                   <div
                     key={dayName}
-                    className={`text-center text-[11px] font-bold py-1 ${
+                    className={`text-center text-[10px] font-bold py-0.5 ${
                       idx >= 5 ? 'text-rose-400' : 'text-slate-400 dark:text-slate-500'
                     }`}
                   >
@@ -296,14 +306,26 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 ))}
               </div>
 
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+              {/* Tight Heatmap Calendar Grid */}
+              <div className="grid grid-cols-7 gap-1">
                 {calendarCells.map((cell) => {
                   const data = dailyMap.get(cell.dateKey);
                   const isSelected = cell.dateKey === selectedDateKey;
                   const intensity = data?.expense
                     ? Math.min(1, data.expense / maxDayExpense)
                     : 0;
+
+                  const cellSurface = isSelected
+                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/30'
+                    : cell.isToday
+                      ? 'bg-emerald-500/12 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                      : !cell.inMonth
+                        ? 'bg-transparent border-transparent text-slate-300 dark:text-slate-700'
+                        : intensity > 0.65
+                          ? 'bg-rose-500/10 border-rose-500/15 text-slate-900 dark:text-white'
+                          : intensity > 0
+                            ? 'bg-amber-500/8 border-transparent text-slate-800 dark:text-slate-100'
+                            : 'bg-slate-50/70 dark:bg-slate-800/40 border-transparent hover:border-slate-200 dark:hover:border-slate-700 text-slate-800 dark:text-slate-200';
 
                   return (
                     <motion.button
@@ -317,28 +339,16 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                           setCalMonth(cell.date.getMonth());
                         }
                       }}
-                      className={`relative min-h-[54px] sm:min-h-[62px] p-1.5 rounded-2xl flex flex-col items-center justify-between transition-all cursor-pointer border ${
-                        isSelected
-                          ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/30'
-                          : cell.isToday
-                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                            : cell.inMonth
-                              ? 'bg-slate-50/70 dark:bg-slate-800/45 border-transparent hover:border-slate-200 dark:hover:border-slate-700 text-slate-800 dark:text-slate-200'
-                              : 'bg-transparent border-transparent text-slate-300 dark:text-slate-700'
-                      }`}
+                      className={`relative min-h-[46px] sm:min-h-[54px] p-1 rounded-xl sm:rounded-2xl flex flex-col items-center justify-between transition-all cursor-pointer border ${cellSurface}`}
                     >
-                      <span
-                        className={`text-xs font-bold tabular-nums leading-none ${
-                          isSelected ? 'text-white' : ''
-                        }`}
-                      >
+                      <span className="text-[11px] font-bold tabular-nums leading-none">
                         {cell.day}
                       </span>
 
-                      <div className="w-full flex flex-col items-center gap-0.5 mt-1">
+                      <div className="w-full flex flex-col items-center gap-0.5">
                         {data && data.expense > 0 && (
                           <span
-                            className={`text-[9px] sm:text-[10px] font-bold tabular-nums leading-none truncate max-w-full ${
+                            className={`text-[9px] font-bold tabular-nums leading-none truncate max-w-full ${
                               isSelected
                                 ? 'text-white'
                                 : intensity > 0.65
@@ -379,53 +389,50 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             </section>
 
             {/* Selected Day Detail Panel */}
-            <section className="lg:col-span-5 card-surface rounded-3xl p-5 flex flex-col">
-              <div className="flex items-start justify-between gap-2 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                    Chi tiết ngày đã chọn
-                  </span>
-                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5">
+            <section className="lg:col-span-5 card-surface rounded-3xl p-4 sm:p-5 flex flex-col">
+              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="min-w-0">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate">
                     {selectedHeader.title}
                   </h3>
-                  <p className="text-xs text-slate-400">{selectedHeader.subtitle}</p>
+                  <p className="text-[11px] text-slate-400">{selectedHeader.subtitle}</p>
                 </div>
 
                 <motion.button
                   type="button"
                   whileTap={{ scale: 0.94 }}
                   onClick={() => onQuickAddForDate(selectedDateKey)}
-                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-500/25 hover:bg-emerald-600 transition-colors cursor-pointer"
+                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-sm shadow-emerald-500/25 hover:bg-emerald-600 transition-colors cursor-pointer"
                 >
-                  <Plus size={15} />
+                  <Plus size={14} />
                   <span>Ghi ngày này</span>
                 </motion.button>
               </div>
 
-              {/* Selected day totals */}
-              <div className="grid grid-cols-2 gap-2.5 my-4">
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60">
-                  <span className="text-[11px] font-semibold text-slate-400">Chi trong ngày</span>
-                  <div className="text-sm font-extrabold text-slate-900 dark:text-white tabular-nums mt-0.5">
+              {/* Compact inline Chi / Thu bar */}
+              <div className="grid grid-cols-2 gap-2 my-3">
+                <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between gap-1">
+                  <span className="text-[11px] font-semibold text-slate-400">Chi</span>
+                  <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white tabular-nums truncate">
                     {formatVND(selectedDayTotals.expense)}
-                  </div>
+                  </span>
                 </div>
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60">
-                  <span className="text-[11px] font-semibold text-slate-400">Thu trong ngày</span>
-                  <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums mt-0.5">
+                <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between gap-1">
+                  <span className="text-[11px] font-semibold text-slate-400">Thu</span>
+                  <span className="text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums truncate">
                     +{formatVND(selectedDayTotals.income)}
-                  </div>
+                  </span>
                 </div>
               </div>
 
               {/* Transactions for selected date */}
               <div className="flex-1">
                 {selectedDayTxs.length === 0 ? (
-                  <div className="py-10 text-center">
-                    <div className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-2.5">
-                      <CalendarIcon size={20} />
+                  <div className="py-8 text-center">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-2">
+                      <CalendarIcon size={18} />
                     </div>
-                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                       Không có giao dịch ngày này
                     </p>
                   </div>
@@ -452,46 +459,67 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18 }}
-            className="space-y-4"
+            transition={{ duration: 0.16 }}
+            className="space-y-3.5"
           >
-            {/* Search & Filters Card */}
-            <section className="card-surface rounded-3xl p-4 space-y-3.5">
-              <div className="flex flex-col sm:flex-row gap-2.5">
+            {/* Streamlined Compact Search + Collapsible Filter Bar */}
+            <section className="card-surface rounded-3xl p-3.5 space-y-2.5">
+              {/* Row 1: Search Input + Collapsible Filter Toggle */}
+              <div className="flex items-center gap-2">
                 <div className="relative flex-1 flex items-center">
-                  <Search size={16} className="absolute left-3.5 text-slate-400 pointer-events-none" />
+                  <Search size={15} className="absolute left-3 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Tìm kiếm..."
-                    className="w-full pl-10 pr-9 py-2.5 rounded-2xl text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500"
+                    placeholder="Tìm ghi chú, danh mục, người..."
+                    className="w-full pl-9 pr-8 py-2 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500"
                   />
                   {query && (
                     <button
                       type="button"
                       onClick={() => setQuery('')}
-                      className="absolute right-3 text-slate-400 hover:text-slate-600"
+                      className="absolute right-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
-                      <X size={15} />
+                      <X size={14} />
                     </button>
                   )}
                 </div>
 
-                {/* Type filter pills */}
-                <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen((v) => !v)}
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                    filtersOpen || extraFilterCount > 0
+                      ? 'bg-emerald-500/12 border-emerald-500/35 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  <SlidersHorizontal size={14} />
+                  <span>Lọc</span>
+                  {extraFilterCount > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold inline-flex items-center justify-center">
+                      {extraFilterCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Row 2: Type Segmented Pills + Live Filtered Totals */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="inline-flex items-center gap-0.5 p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800/80">
                   {(
                     [
                       { id: 'all', label: 'Tất cả' },
-                      { id: 'expense', label: 'Chi tiêu' },
-                      { id: 'income', label: 'Thu nhập' },
+                      { id: 'expense', label: 'Chi' },
+                      { id: 'income', label: 'Thu' },
                     ] as const
                   ).map((opt) => (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => setTypeFilter(opt.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                         typeFilter === opt.id
                           ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                           : 'text-slate-500 dark:text-slate-400'
@@ -501,119 +529,165 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     </button>
                   ))}
                 </div>
+
+                <div className="flex items-center gap-2.5 text-[11px] font-bold tabular-nums">
+                  <span className="text-slate-400">{filteredTransactions.length} mục</span>
+                  <span className="text-rose-500">-{formatCompactVND(filteredSummary.expense)}</span>
+                  {filteredSummary.income > 0 && (
+                    <span className="text-emerald-500">
+                      +{formatCompactVND(filteredSummary.income)}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Scrollable Icon Category Filter */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                <button
-                  type="button"
-                  onClick={() => setCategoryFilter('all')}
-                  className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                    categoryFilter === 'all'
-                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent'
-                      : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
-                  }`}
-                >
-                  Mọi danh mục
-                </button>
-                {state.categories.map((cat) => {
-                  const active = categoryFilter === cat.id;
-                  return (
+              {/* Dismissible active filter chips when drawer is collapsed */}
+              {!filtersOpen && (activeCategoryObj || activeMemberObj) && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  {activeCategoryObj && (
                     <button
-                      key={cat.id}
                       type="button"
-                      onClick={() => setCategoryFilter(active ? 'all' : cat.id)}
-                      className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                        active
-                          ? 'text-white border-transparent shadow-sm'
-                          : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
-                      }`}
-                      style={active ? { backgroundColor: cat.color } : undefined}
+                      onClick={() => setCategoryFilter('all')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-white cursor-pointer"
+                      style={{ backgroundColor: activeCategoryObj.color }}
                     >
-                      <DynamicIcon
-                        name={cat.icon}
-                        size={13}
-                        style={!active ? { color: cat.color } : undefined}
-                      />
-                      <span>{cat.shortName}</span>
+                      <DynamicIcon name={activeCategoryObj.icon} size={11} />
+                      <span>{activeCategoryObj.shortName}</span>
+                      <X size={11} />
                     </button>
-                  );
-                })}
-              </div>
-
-              {/* Member filter & Filtered totals strip */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setMemberFilter('all')}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
-                      memberFilter === 'all'
-                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                        : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                  >
-                    Cả nhà
-                  </button>
-                  {state.members.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setMemberFilter(memberFilter === m.id ? 'all' : m.id)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
-                        memberFilter === m.id
-                          ? 'text-white'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                      }`}
-                      style={memberFilter === m.id ? { backgroundColor: m.color } : undefined}
-                    >
-                      <DynamicIcon name={m.icon} size={11} />
-                      <span>{m.name}</span>
-                    </button>
-                  ))}
-
-                  {hasActiveFilters && (
+                  )}
+                  {activeMemberObj && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setQuery('');
-                        setTypeFilter('all');
-                        setCategoryFilter('all');
-                        setMemberFilter('all');
-                      }}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer"
+                      onClick={() => setMemberFilter('all')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-white cursor-pointer"
+                      style={{ backgroundColor: activeMemberObj.color }}
                     >
-                      Xóa bộ lọc
+                      <DynamicIcon name={activeMemberObj.icon} size={11} />
+                      <span>{activeMemberObj.name}</span>
+                      <X size={11} />
                     </button>
                   )}
                 </div>
+              )}
 
-                <div className="flex items-center gap-3 text-xs font-bold tabular-nums">
-                  <span className="text-slate-400">{filteredTransactions.length} mục</span>
-                  <span className="text-rose-500">-{formatCompactVND(filteredSummary.expense)}</span>
-                  <span className="text-emerald-500">+{formatCompactVND(filteredSummary.income)}</span>
-                </div>
-              </div>
+              {/* Collapsible Category + Member Drawer */}
+              <AnimatePresence initial={false}>
+                {filtersOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                      {/* Scrollable Category Strip */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setCategoryFilter('all')}
+                          className={`shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                            categoryFilter === 'all'
+                              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent'
+                              : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
+                          }`}
+                        >
+                          Mọi mục
+                        </button>
+                        {state.categories.map((cat) => {
+                          const active = categoryFilter === cat.id;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setCategoryFilter(active ? 'all' : cat.id)}
+                              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer ${
+                                active
+                                  ? 'text-white border-transparent shadow-xs'
+                                  : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
+                              }`}
+                              style={active ? { backgroundColor: cat.color } : undefined}
+                            >
+                              <DynamicIcon
+                                name={cat.icon}
+                                size={12}
+                                style={!active ? { color: cat.color } : undefined}
+                              />
+                              <span>{cat.shortName}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Member Strip + Reset */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setMemberFilter('all')}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                            memberFilter === 'all'
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                              : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                        >
+                          Cả nhà
+                        </button>
+                        {state.members.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setMemberFilter(memberFilter === m.id ? 'all' : m.id)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                              memberFilter === m.id
+                                ? 'text-white'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                            }`}
+                            style={memberFilter === m.id ? { backgroundColor: m.color } : undefined}
+                          >
+                            <DynamicIcon name={m.icon} size={11} />
+                            <span>{m.name}</span>
+                          </button>
+                        ))}
+
+                        {hasActiveFilters && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuery('');
+                              setTypeFilter('all');
+                              setCategoryFilter('all');
+                              setMemberFilter('all');
+                            }}
+                            className="ml-auto px-2 py-1 rounded-lg text-[11px] font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer"
+                          >
+                            Đặt lại
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </section>
 
             {/* Chronological Date-Grouped Feed */}
             {groupedList.length === 0 ? (
-              <div className="card-surface rounded-3xl py-12 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-3">
-                  <Search size={22} />
+              <div className="card-surface rounded-3xl py-10 text-center">
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-2.5">
+                  <Search size={19} />
                 </div>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
                   Không có giao dịch nào
                 </p>
               </div>
             ) : (
-              <div className="space-y-3.5">
+              <div className="space-y-3">
                 {groupedList.slice(0, visibleGroupsCount).map((group) => (
-                  <section key={group.dateKey} className="card-surface rounded-3xl p-4">
-                    {/* Auto-subtotal Date Header */}
-                    <div className="flex items-center justify-between pb-2.5 mb-1 border-b border-slate-100 dark:border-slate-800/80">
+                  <section key={group.dateKey} className="card-surface rounded-3xl p-3.5 sm:p-4">
+                    <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 dark:border-slate-800/80">
                       <div className="flex items-baseline gap-2">
-                        <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">
                           {group.title}
                         </h4>
                         <span className="text-[11px] font-medium text-slate-400">
@@ -654,7 +728,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setVisibleGroupsCount((n) => n + 20)}
-                    className="w-full py-3 rounded-2xl card-surface text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/8 transition-colors cursor-pointer"
+                    className="w-full py-2.5 rounded-2xl card-surface text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/8 transition-colors cursor-pointer"
                   >
                     Xem thêm {groupedList.length - visibleGroupsCount} ngày cũ hơn
                   </button>

@@ -90,8 +90,8 @@ export const TrendBarChart: React.FC<TrendBarChartProps> = ({
 
       {/* Bars stage */}
       <div className="relative h-48 pt-6 pb-2 flex items-end justify-between gap-1.5 sm:gap-2.5">
-        {/* Dashed average reference line */}
-        {!showIncome && avgExpense > 0 && (
+        {/* Dashed average reference line (only meaningful when >= 2 active buckets) */}
+        {!showIncome && nonZeroExpenses.length >= 2 && avgExpense > 0 && (
           <div
             className="absolute left-0 right-0 border-t border-dashed border-emerald-500/45 pointer-events-none z-10 flex justify-end"
             style={{ bottom: `calc(${avgLinePct * 0.72}% + 28px)` }}

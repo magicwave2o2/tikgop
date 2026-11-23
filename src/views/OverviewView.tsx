@@ -1,36 +1,25 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowDownLeft,
   ArrowRight,
-  ArrowUpRight,
-  BarChart3,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Mic,
-  PiggyBank,
-  PlusCircle,
+  Plus,
   RotateCcw,
   ScanLine,
   Sparkles,
   TrendingDown,
   TrendingUp,
-  Users,
-  Wallet,
 } from 'lucide-react';
 import { AnimatedCurrency } from '../components/AnimatedNumber';
-import { CategoryDonutChart } from '../components/CategoryDonutChart';
 import { CategoryIconBadge, DynamicIcon } from '../components/IconRenderer';
 import { TransactionRow } from '../components/TransactionRow';
-import { TrendBarChart } from '../components/TrendBarChart';
 import { useFinance } from '../store/useFinanceStore';
 import type { AppTab, Timeframe, Transaction } from '../types/finance';
 import {
   aggregateByCategory,
   aggregateByMember,
-  buildTrendSeries,
   computePeriodSummary,
   computeQuickRollups,
   filterTransactionsByRange,
@@ -69,11 +58,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   const { state, deleteTransaction } = useFinance();
   const [timeframe, setTimeframe] = useState<Timeframe>('month');
   const [anchorDate, setAnchorDate] = useState<Date>(() => getToday());
-  /** 'all' = shared total for all 4 family members (default so everyone sees the whole family) */
   const [viewScope, setViewScope] = useState<'all' | string>('all');
 
   const today = useMemo(() => getToday(), []);
-  const todayKey = useMemo(() => toDateKey(today), [today]);
   const range = useMemo(() => getPeriodRange(timeframe, anchorDate), [timeframe, anchorDate]);
 
   const scopedTransactions = useMemo(() => {
@@ -91,7 +78,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
     [scopedTransactions, range.start, range.end],
   );
 
-  // Always compute full family member breakdown in the active period
   const fullFamilyPeriodTxs = useMemo(
     () => filterTransactionsByRange(state.transactions, range.start, range.end),
     [state.transactions, range.start, range.end],
@@ -115,34 +101,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   const memberBreakdown = useMemo(
     () => aggregateByMember(fullFamilyPeriodTxs, state.members, 'expense'),
     [fullFamilyPeriodTxs, state.members],
-  );
-
-  // Dedicated Today's Daily Category Breakdown (Phân loại chi tiêu hằng ngày)
-  const todayTxs = useMemo(
-    () => scopedTransactions.filter((tx) => tx.date === todayKey && tx.type === 'expense'),
-    [scopedTransactions, todayKey],
-  );
-
-  const todayCategoryBreakdown = useMemo(
-    () => aggregateByCategory(todayTxs, state.categories, 'expense'),
-    [todayTxs, state.categories],
-  );
-
-  const todayExpenseTotal = useMemo(
-    () => todayTxs.reduce((s, t) => s + t.amount, 0),
-    [todayTxs],
-  );
-
-  const miniTrendMode: 'day' | 'week' | 'month' =
-    timeframe === 'day' || timeframe === 'week'
-      ? 'day'
-      : timeframe === 'month'
-        ? 'week'
-        : 'month';
-
-  const miniTrendBuckets = useMemo(
-    () => buildTrendSeries(scopedTransactions, miniTrendMode, anchorDate),
-    [scopedTransactions, miniTrendMode, anchorDate],
   );
 
   const recentTxs = useMemo(() => {
@@ -181,630 +139,445 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   const isOverBudget = periodBudget > 0 && summary.totalExpense > periodBudget;
 
   return (
-    <div className="space-y-5">
-      {/* Timeframe Segmented Control + Period Navigator */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="grid grid-cols-4 p-1 rounded-2xl bg-white dark:bg-[#141923] border border-slate-200/70 dark:border-slate-800 shadow-xs sm:w-72">
-          {TIMEFRAMES.map((tf) => {
-            const active = timeframe === tf.id;
-            return (
-              <button
-                key={tf.id}
-                type="button"
-                onClick={() => {
-                  setTimeframe(tf.id);
-                  setAnchorDate(getToday());
-                }}
-                className={`relative py-2 rounded-xl text-xs font-bold transition-colors z-10 cursor-pointer ${
-                  active
-                    ? 'text-white'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                {active && (
-                  <motion.div
-                    layoutId="overviewTimeframePill"
-                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md shadow-emerald-500/25 -z-10"
-                  />
-                )}
-                {tf.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center justify-between sm:justify-end gap-2">
-          {!isAtCurrentPeriod && (
-            <motion.button
-              type="button"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileTap={{ scale: 0.94 }}
-              onClick={() => setAnchorDate(getToday())}
-              className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-            >
-              <RotateCcw size={13} />
-              <span>Hiện tại</span>
-            </motion.button>
-          )}
-
-          <div className="flex items-center gap-1 bg-white dark:bg-[#141923] border border-slate-200/70 dark:border-slate-800 rounded-2xl p-1 shadow-xs flex-1 sm:flex-initial justify-between">
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setAnchorDate((d) => shiftAnchorDate(timeframe, d, -1))}
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-              aria-label="Kỳ trước"
-            >
-              <ChevronLeft size={17} />
-            </motion.button>
-
-            <div className="px-2 text-center">
-              <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                {range.label}
-              </div>
-              <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500 tabular-nums">
-                {range.subLabel}
-              </div>
-            </div>
-
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setAnchorDate((d) => shiftAnchorDate(timeframe, d, 1))}
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-              aria-label="Kỳ sau"
-            >
-              <ChevronRight size={17} />
-            </motion.button>
-          </div>
-        </div>
-      </div>
-
-      {/* Hero Summary Card */}
+    <div className="space-y-4">
+      {/* UNIFIED LUMINOUS HERO CARD: Inline Timeframe + Totals + Budget + Rollup Ribbon */}
       <motion.section
         layout
-        className="relative overflow-hidden rounded-[2rem] p-5 sm:p-6 text-white bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 shadow-xl shadow-emerald-600/20"
+        className="relative overflow-hidden rounded-[2rem] p-4 sm:p-6 text-white bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 shadow-xl shadow-emerald-600/20"
       >
-        <div className="pointer-events-none absolute -top-16 -right-12 w-52 h-52 rounded-full bg-white/15 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-12 w-56 h-56 rounded-full bg-teal-300/20 blur-2xl" />
+        {/* Subtle ambient mesh */}
+        <div className="pointer-events-none absolute -top-20 -right-14 w-56 h-56 rounded-full bg-white/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-16 w-60 h-60 rounded-full bg-teal-300/20 blur-3xl" />
 
-        <div className="relative z-10">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/16 backdrop-blur-md text-[11px] font-semibold">
-                <Wallet size={13} />
-                <span>
-                  {viewScope === 'all'
-                    ? `Tổng chi cả gia đình • ${range.shortLabel}`
-                    : `Chi tiêu của ${viewingMemberObj?.name} • ${range.shortLabel}`}
-                </span>
-              </div>
-
-              <div className="mt-2.5 text-3xl sm:text-4xl font-extrabold tracking-tight">
-                <AnimatedCurrency value={summary.totalExpense} />
-              </div>
+        <div className="relative z-10 space-y-4">
+          {/* Top Integrated Controls: Timeframe Pills + Period Stepper */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="inline-flex p-0.5 rounded-xl bg-black/15 backdrop-blur-md">
+              {TIMEFRAMES.map((tf) => {
+                const active = timeframe === tf.id;
+                return (
+                  <button
+                    key={tf.id}
+                    type="button"
+                    onClick={() => {
+                      setTimeframe(tf.id);
+                      setAnchorDate(getToday());
+                    }}
+                    className={`relative px-2.5 sm:px-3 py-1.5 rounded-[10px] text-[11px] font-extrabold transition-colors z-10 cursor-pointer ${
+                      active ? 'text-emerald-700' : 'text-white/80 hover:text-white'
+                    }`}
+                  >
+                    {active && (
+                      <motion.div
+                        layoutId="heroTimeframePill"
+                        transition={{ type: 'spring', stiffness: 440, damping: 32 }}
+                        className="absolute inset-0 rounded-[10px] bg-white shadow-xs -z-10"
+                      />
+                    )}
+                    {tf.label}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <div className="flex items-center gap-1">
+              {!isAtCurrentPeriod && (
+                <button
+                  type="button"
+                  onClick={() => setAnchorDate(getToday())}
+                  className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25 transition-colors cursor-pointer"
+                  aria-label="Về hiện tại"
+                  title="Về hiện tại"
+                >
+                  <RotateCcw size={13} />
+                </button>
+              )}
+              <div className="inline-flex items-center gap-0.5 bg-black/15 backdrop-blur-md rounded-xl p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setAnchorDate((d) => shiftAnchorDate(timeframe, d, -1))}
+                  className="p-1.5 rounded-lg hover:bg-white/15 transition-colors cursor-pointer"
+                  aria-label="Kỳ trước"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="px-1.5 text-[11px] font-bold tabular-nums whitespace-nowrap">
+                  {range.shortLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAnchorDate((d) => shiftAnchorDate(timeframe, d, 1))}
+                  className="p-1.5 rounded-lg hover:bg-white/15 transition-colors cursor-pointer"
+                  aria-label="Kỳ sau"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Center Big Rolling Total + Inline Metrics */}
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-emerald-50/85">
+                  {viewingMemberObj ? `Chi tiêu của ${viewingMemberObj.name}` : 'Tổng chi gia đình'}
+                </span>
+                {viewingMemberObj && (
+                  <button
+                    type="button"
+                    onClick={() => setViewScope('all')}
+                    className="px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 text-[10px] font-bold cursor-pointer"
+                  >
+                    Cả nhà
+                  </button>
+                )}
+              </div>
+
               {summary.expenseDeltaPct !== null && (
-                <div
-                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-2xl text-xs font-bold backdrop-blur-md ${
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold backdrop-blur-md ${
                     summary.expenseDeltaPct <= 0
                       ? 'bg-white/20 text-emerald-50'
-                      : 'bg-rose-500/35 text-rose-50 border border-rose-200/30'
+                      : 'bg-rose-500/40 text-rose-50'
                   }`}
                 >
                   {summary.expenseDeltaPct <= 0 ? (
-                    <TrendingDown size={14} />
+                    <TrendingDown size={12} />
                   ) : (
-                    <TrendingUp size={14} />
+                    <TrendingUp size={12} />
                   )}
                   <span className="tabular-nums">
                     {summary.expenseDeltaPct > 0 ? '+' : ''}
                     {summary.expenseDeltaPct}%
                   </span>
-                </div>
-              )}
-
-              {viewScope !== 'all' && (
-                <button
-                  type="button"
-                  onClick={() => setViewScope('all')}
-                  className="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/30 text-[11px] font-bold backdrop-blur-md cursor-pointer"
-                >
-                  Xem lại cả nhà
-                </button>
+                </span>
               )}
             </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-5">
-            <div className="rounded-2xl bg-white/14 backdrop-blur-md p-3 border border-white/15">
-              <div className="flex items-center gap-1 text-[11px] text-emerald-50/85 font-medium">
-                <ArrowDownLeft size={13} className="text-emerald-200" />
-                <span>Thu nhập</span>
-              </div>
-              <div className="mt-1 text-sm sm:text-base font-extrabold tabular-nums truncate">
-                {formatCompactVND(summary.totalIncome)}
-              </div>
+            <div className="mt-1 text-3xl sm:text-[40px] font-extrabold tracking-tight leading-none">
+              <AnimatedCurrency value={summary.totalExpense} />
             </div>
 
-            <div className="rounded-2xl bg-white/14 backdrop-blur-md p-3 border border-white/15">
-              <div className="flex items-center gap-1 text-[11px] text-emerald-50/85 font-medium">
-                <PiggyBank size={13} className="text-amber-200" />
-                <span>Số dư kỳ</span>
-              </div>
-              <div className="mt-1 text-sm sm:text-base font-extrabold tabular-nums truncate">
-                {summary.netBalance >= 0 ? '+' : ''}
-                {formatCompactVND(summary.netBalance)}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white/14 backdrop-blur-md p-3 border border-white/15">
-              <div className="flex items-center gap-1 text-[11px] text-emerald-50/85 font-medium">
-                <Clock size={13} className="text-sky-200" />
-                <span>TB / ngày</span>
-              </div>
-              <div className="mt-1 text-sm sm:text-base font-extrabold tabular-nums truncate">
-                {formatCompactVND(summary.dailyAverage)}
-              </div>
-            </div>
-          </div>
-
-          {viewScope === 'all' && periodBudget > 0 && (
-            <div className="mt-4 pt-3.5 border-t border-white/15">
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="font-medium text-emerald-50/90">
-                  {timeframe === 'month'
-                    ? 'Hạn mức chi tiêu cả gia đình (tháng)'
-                    : `Ước tính hạn mức (${range.shortLabel})`}
-                </span>
-                <span className="font-bold tabular-nums">
-                  {Math.round((summary.totalExpense / periodBudget) * 100)}% •{' '}
-                  {formatCompactVND(periodBudget)}
-                </span>
-              </div>
-              <div className="h-2 rounded-full bg-black/20 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${budgetPct}%` }}
-                  transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-                  className={`h-full rounded-full ${
-                    isOverBudget
-                      ? 'bg-gradient-to-r from-amber-300 to-rose-400'
-                      : budgetPct > 80
-                        ? 'bg-gradient-to-r from-amber-200 to-amber-400'
-                        : 'bg-gradient-to-r from-emerald-200 to-white'
-                  }`}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </motion.section>
-
-      {/* Smart Input Action Bar: Receipt OCR Scan + Vietnamese Voice + Manual */}
-      <section className="grid grid-cols-3 gap-2.5 sm:gap-3">
-        <motion.button
-          type="button"
-          whileHover={{ y: -1 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={onOpenReceiptScan}
-          className="card-surface p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-3 text-center sm:text-left hover:border-emerald-400/60 transition-all cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25">
-            <ScanLine size={20} />
-          </div>
-          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
-            Quét hóa đơn
-          </span>
-        </motion.button>
-
-        <motion.button
-          type="button"
-          whileHover={{ y: -1 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={onOpenVoiceInput}
-          className="card-surface p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-3 text-center sm:text-left hover:border-violet-400/60 transition-all cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-violet-500/25">
-            <Mic size={20} />
-          </div>
-          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
-            Giọng nói
-          </span>
-        </motion.button>
-
-        <motion.button
-          type="button"
-          whileHover={{ y: -1 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={onQuickAdd}
-          className="card-surface p-3.5 rounded-2xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-3 text-center sm:text-left hover:border-sky-400/60 transition-all cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-sky-500/25">
-            <PlusCircle size={20} />
-          </div>
-          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
-            Ghi nhanh
-          </span>
-        </motion.button>
-      </section>
-
-      {/* Auto-Aggregated Quick Rollups Strip: Ngày / Tuần / Tháng at a glance */}
-      <section className="grid grid-cols-3 gap-2.5 sm:gap-3">
-        {(
-          [
-            {
-              id: 'day' as Timeframe,
-              title: 'Hôm nay',
-              amount: quickRollups.todayExpense,
-              sub: `${quickRollups.todayCount} khoản chi`,
-              icon: Sparkles,
-              accent: 'text-amber-500 bg-amber-500/12',
-            },
-            {
-              id: 'week' as Timeframe,
-              title: 'Tuần này',
-              amount: quickRollups.weekExpense,
-              sub: `${quickRollups.weekCount} khoản chi`,
-              icon: CalendarDays,
-              accent: 'text-sky-500 bg-sky-500/12',
-            },
-            {
-              id: 'month' as Timeframe,
-              title: 'Tháng này',
-              amount: quickRollups.monthExpense,
-              sub: `${quickRollups.monthCount} khoản chi`,
-              icon: BarChart3,
-              accent: 'text-emerald-500 bg-emerald-500/12',
-            },
-          ]
-        ).map((card) => {
-          const Icon = card.icon;
-          const active = timeframe === card.id && isAtCurrentPeriod;
-          return (
-            <motion.button
-              key={card.id}
-              type="button"
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                setTimeframe(card.id);
-                setAnchorDate(getToday());
-              }}
-              className={`card-surface text-left p-3 sm:p-4 rounded-2xl transition-all cursor-pointer ${
-                active
-                  ? 'ring-2 ring-emerald-500/70 border-emerald-500/40'
-                  : 'hover:border-slate-300 dark:hover:border-slate-700'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-1 mb-2">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${card.accent}`}>
-                  <Icon size={16} />
-                </div>
-                {active && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
-              </div>
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                {card.title}
-              </div>
-              <div className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tabular-nums mt-0.5 truncate">
-                {formatCompactVND(card.amount)}
-              </div>
-              <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
-                {card.sub}
-              </div>
-            </motion.button>
-          );
-        })}
-      </section>
-
-      {/* Main Responsive Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Column */}
-        <div className="lg:col-span-7 space-y-5">
-          {/* Dedicated Daily Categorized Breakdown */}
-          <section className="card-surface rounded-3xl p-5">
-            <div className="flex items-center justify-between gap-2 mb-3.5">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Chi tiêu hôm nay
-              </h3>
-              <span className="px-3 py-1 rounded-xl bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-extrabold tabular-nums shrink-0">
-                {formatVND(todayExpenseTotal)}
+            {/* Sleek single-line inline KPIs */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-emerald-50/90 tabular-nums">
+              <span>
+                Thu <strong className="text-white">{formatCompactVND(summary.totalIncome)}</strong>
+              </span>
+              <span className="opacity-40">•</span>
+              <span>
+                Dư{' '}
+                <strong className="text-white">
+                  {summary.netBalance >= 0 ? '+' : ''}
+                  {formatCompactVND(summary.netBalance)}
+                </strong>
+              </span>
+              <span className="opacity-40">•</span>
+              <span>
+                TB/ngày <strong className="text-white">{formatCompactVND(summary.dailyAverage)}</strong>
               </span>
             </div>
 
-            {todayCategoryBreakdown.length === 0 ? (
-              <div className="py-5 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/40">
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Hôm nay chưa có khoản chi nào.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {todayCategoryBreakdown.map((item) => {
-                  const membersInCat = Array.from(
-                    new Set(
-                      todayTxs
-                        .filter((tx) => tx.categoryId === item.category.id)
-                        .map((tx) => memMap.get(tx.memberId)?.name)
-                        .filter(Boolean),
-                    ),
-                  );
-                  return (
-                    <motion.button
-                      key={item.category.id}
-                      type="button"
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => onNavigateTab('history', item.category.id)}
-                      className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/85 dark:bg-slate-800/45 hover:bg-slate-100/90 dark:hover:bg-slate-800 border border-slate-100 dark:border-slate-800 text-left transition-colors cursor-pointer"
-                    >
-                      <CategoryIconBadge
-                        icon={item.category.icon}
-                        color={item.category.color}
-                        size="md"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
-                            {item.category.name}
-                          </span>
-                          <span className="text-xs font-extrabold text-slate-900 dark:text-white tabular-nums shrink-0">
-                            {formatCompactVND(item.amount)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 mt-1">
-                          <span className="text-[10px] text-slate-400 truncate">
-                            {membersInCat.join(', ')} • {item.count} khoản
-                          </span>
-                          <span
-                            className="text-[10px] font-bold tabular-nums shrink-0"
-                            style={{ color: item.category.color }}
-                          >
-                            {Math.round(item.percentage)}%
-                          </span>
-                        </div>
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {/* Smart Period Category Classification Card */}
-          <section className="card-surface rounded-3xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Phân loại chi tiêu ({range.shortLabel})
-              </h3>
-              <button
-                type="button"
-                onClick={() => onNavigateTab('analytics')}
-                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-              >
-                <span>Chi tiết</span>
-                <ArrowRight size={14} />
-              </button>
-            </div>
-
-            {categoryBreakdown.length === 0 ? (
-              <div className="py-8 text-center">
-                <div className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-2.5">
-                  <Sparkles size={20} />
+            {/* Thin Luminous Budget Progress */}
+            {viewScope === 'all' && periodBudget > 0 && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[11px] text-emerald-50/85 mb-1 tabular-nums">
+                  <span>Hạn mức {range.shortLabel}</span>
+                  <span className="font-bold text-white">
+                    {Math.round((summary.totalExpense / periodBudget) * 100)}% •{' '}
+                    {formatCompactVND(periodBudget)}
+                  </span>
                 </div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">
-                  Chưa có khoản chi nào
-                </p>
-                <button
-                  type="button"
-                  onClick={onQuickAdd}
-                  className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-500/25 cursor-pointer"
-                >
-                  + Thêm giao dịch
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
-                <div className="sm:col-span-5 flex justify-center">
-                  <CategoryDonutChart
-                    items={categoryBreakdown}
-                    totalAmount={summary.totalExpense}
-                    centerLabel={range.shortLabel}
-                    onSelectCategory={(catId) => onNavigateTab('history', catId)}
+                <div className="h-1.5 rounded-full bg-black/20 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${budgetPct}%` }}
+                    transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+                    className={`h-full rounded-full ${
+                      isOverBudget
+                        ? 'bg-gradient-to-r from-amber-300 to-rose-400'
+                        : budgetPct > 80
+                          ? 'bg-amber-300'
+                          : 'bg-white'
+                    }`}
                   />
                 </div>
-
-                <div className="sm:col-span-7 space-y-2.5">
-                  {categoryBreakdown.slice(0, 5).map((item, index) => (
-                    <motion.button
-                      key={item.category.id}
-                      type="button"
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.04 }}
-                      whileTap={{ scale: 0.985 }}
-                      onClick={() => onNavigateTab('history', item.category.id)}
-                      className="w-full text-left p-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <CategoryIconBadge
-                          icon={item.category.icon}
-                          color={item.category.color}
-                          size="sm"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                              {item.category.name}
-                            </span>
-                            <span className="text-xs font-extrabold text-slate-900 dark:text-white tabular-nums shrink-0">
-                              {formatVND(item.amount)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <div className="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${Math.max(4, item.percentage)}%` }}
-                                transition={{ type: 'spring', stiffness: 140, damping: 22 }}
-                                className="h-full rounded-full"
-                                style={{ backgroundColor: item.category.color }}
-                              />
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-400 tabular-nums w-8 text-right">
-                              {Math.round(item.percentage)}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
               </div>
             )}
-          </section>
+          </div>
 
-          {/* 4 Family Members Spending Breakdown */}
-          <section className="card-surface rounded-3xl p-5">
-            <div className="flex items-center justify-between gap-2 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-violet-500/12 text-violet-500 flex items-center justify-center">
-                  <Users size={17} />
+          {/* Integrated Glass Rollup Ribbon: Hôm nay | Tuần này | Tháng này */}
+          <div className="grid grid-cols-3 divide-x divide-white/15 rounded-2xl bg-black/15 backdrop-blur-md border border-white/10 overflow-hidden">
+            {(
+              [
+                { id: 'day' as Timeframe, label: 'Hôm nay', val: quickRollups.todayExpense },
+                { id: 'week' as Timeframe, label: 'Tuần này', val: quickRollups.weekExpense },
+                { id: 'month' as Timeframe, label: 'Tháng này', val: quickRollups.monthExpense },
+              ]
+            ).map((r) => {
+              const isCurrent = timeframe === r.id && isAtCurrentPeriod;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => {
+                    setTimeframe(r.id);
+                    setAnchorDate(getToday());
+                  }}
+                  className={`py-2.5 px-2 text-center transition-colors cursor-pointer ${
+                    isCurrent ? 'bg-white/16' : 'hover:bg-white/8'
+                  }`}
+                >
+                  <div className="text-[10px] font-semibold text-emerald-50/80">{r.label}</div>
+                  <div className="text-xs sm:text-sm font-extrabold text-white tabular-nums mt-0.5 truncate">
+                    {formatCompactVND(r.val)}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </motion.section>
+
+      {/* SLEEK UNIFIED 3-WAY QUICK CAPTURE BAR (Mobile/Tablet; Desktop has Sidebar shortcuts) */}
+      <section className="lg:hidden card-surface rounded-2xl p-1.5 grid grid-cols-3 gap-1.5">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.96 }}
+          onClick={onOpenReceiptScan}
+          className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/18 text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
+        >
+          <ScanLine size={17} strokeWidth={2.3} />
+          <span className="text-xs font-extrabold whitespace-nowrap">Quét bill</span>
+        </motion.button>
+
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.96 }}
+          onClick={onOpenVoiceInput}
+          className="relative flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-violet-500/10 hover:bg-violet-500/18 text-violet-700 dark:text-violet-300 transition-colors cursor-pointer"
+        >
+          <span className="relative flex items-center justify-center">
+            <Mic size={17} strokeWidth={2.3} />
+            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+          </span>
+          <span className="text-xs font-extrabold whitespace-nowrap">Giọng nói</span>
+        </motion.button>
+
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.96 }}
+          onClick={onQuickAdd}
+          className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/18 text-sky-700 dark:text-sky-300 transition-colors cursor-pointer"
+        >
+          <Plus size={17} strokeWidth={2.5} />
+          <span className="text-xs font-extrabold whitespace-nowrap">Ghi tay</span>
+        </motion.button>
+      </section>
+
+      {/* CREATIVE 4-MEMBER RADIAL-RING AVATAR STRIP */}
+      <section className="card-surface rounded-3xl p-3.5 sm:p-4">
+        <div className="grid grid-cols-4 gap-2">
+          {memberBreakdown.map((item) => {
+            const isFiltered = viewScope === item.member.id;
+            const ringRadius = 21;
+            const ringCirc = 2 * Math.PI * ringRadius;
+            const ringDash = (Math.min(100, item.percentage) / 100) * ringCirc;
+
+            return (
+              <motion.button
+                key={item.member.id}
+                type="button"
+                whileTap={{ scale: 0.94 }}
+                onClick={() =>
+                  setViewScope((prev) => (prev === item.member.id ? 'all' : item.member.id))
+                }
+                className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all cursor-pointer ${
+                  isFiltered
+                    ? 'bg-emerald-500/10 ring-2 ring-emerald-500/60'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                {/* Avatar with Creative Circular Spending Progress Ring */}
+                <div className="relative w-12 h-12 flex items-center justify-center">
+                  <svg className="absolute inset-0 w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r={ringRadius}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      className="text-slate-100 dark:text-slate-800"
+                    />
+                    {item.percentage > 0 && (
+                      <motion.circle
+                        cx="24"
+                        cy="24"
+                        r={ringRadius}
+                        fill="none"
+                        stroke={item.member.color}
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        initial={{ strokeDasharray: `0 ${ringCirc}` }}
+                        animate={{ strokeDasharray: `${ringDash} ${ringCirc}` }}
+                        transition={{ type: 'spring', stiffness: 140, damping: 22 }}
+                      />
+                    )}
+                  </svg>
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center transition-transform"
+                    style={{
+                      backgroundColor: isFiltered ? item.member.color : `${item.member.color}1C`,
+                      color: isFiltered ? '#ffffff' : item.member.color,
+                    }}
+                  >
+                    <DynamicIcon name={item.member.icon} size={17} />
+                  </div>
                 </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Chi tiêu 4 thành viên ({range.shortLabel})
-                </h3>
+
+                <span className="mt-1.5 text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-full">
+                  {item.member.name}
+                </span>
+                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 tabular-nums">
+                  {formatCompactVND(item.amount)}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* PRAGMATIC 2-COLUMN BENTO CORE: Category Bar & Ranked List + Recent Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Category Classification with Creative Apple-Storage Stacked Bar */}
+        <section className="lg:col-span-6 card-surface rounded-3xl p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3.5">
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+              Phân loại ({range.shortLabel})
+            </h3>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('analytics')}
+              className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+            >
+              <span>Phân tích</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+
+          {categoryBreakdown.length === 0 ? (
+            <div className="py-7 text-center">
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-2">
+                <Sparkles size={18} />
+              </div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">
+                Chưa có khoản chi nào
+              </p>
+              <button
+                type="button"
+                onClick={onQuickAdd}
+                className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-sm shadow-emerald-500/25 cursor-pointer"
+              >
+                + Ghi khoản đầu tiên
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3.5">
+              {/* Stacked Proportional Color Ribbon */}
+              <div className="h-3 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex gap-0.5 p-0.5">
+                {categoryBreakdown.slice(0, 7).map((item) => (
+                  <motion.div
+                    key={item.category.id}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.max(4, item.percentage)}%` }}
+                    transition={{ type: 'spring', stiffness: 150, damping: 24 }}
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: item.category.color }}
+                    title={`${item.category.name}: ${formatVND(item.amount)} (${Math.round(item.percentage)}%)`}
+                  />
+                ))}
               </div>
 
-              {viewScope !== 'all' && (
-                <button
-                  type="button"
-                  onClick={() => setViewScope('all')}
-                  className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 cursor-pointer"
-                >
-                  Cả nhà
-                </button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {memberBreakdown.map((item) => {
-                const isFiltered = viewScope === item.member.id;
-                return (
+              {/* Compact Ranked Category Rows */}
+              <div className="space-y-1">
+                {categoryBreakdown.slice(0, 6).map((item) => (
                   <motion.button
-                    key={item.member.id}
+                    key={item.category.id}
                     type="button"
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() =>
-                      setViewScope((prev) => (prev === item.member.id ? 'all' : item.member.id))
-                    }
-                    className={`text-left p-3 rounded-2xl border transition-all cursor-pointer ${
-                      isFiltered
-                        ? 'bg-white dark:bg-slate-800 border-emerald-500 ring-2 ring-emerald-500/25 shadow-sm'
-                        : 'bg-slate-50/90 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 hover:border-slate-300'
-                    }`}
+                    whileTap={{ scale: 0.985 }}
+                    onClick={() => onNavigateTab('history', item.category.id)}
+                    className="w-full flex items-center gap-3 p-2 -mx-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center"
-                        style={{
-                          backgroundColor: `${item.member.color}1E`,
-                          color: item.member.color,
-                        }}
-                      >
-                        <DynamicIcon name={item.member.icon} size={18} />
+                    <CategoryIconBadge
+                      icon={item.category.icon}
+                      color={item.category.color}
+                      size="sm"
+                    />
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                          {item.category.name}
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-400">
+                          {item.count}
+                        </span>
                       </div>
+                    </div>
+                    <div className="text-right shrink-0 flex items-center gap-2">
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-white tabular-nums">
+                        {formatVND(item.amount)}
+                      </span>
                       <span
-                        className="text-[11px] font-extrabold tabular-nums"
-                        style={{ color: item.member.color }}
+                        className="text-[10px] font-extrabold tabular-nums w-8 text-right"
+                        style={{ color: item.category.color }}
                       >
                         {Math.round(item.percentage)}%
                       </span>
                     </div>
-                    <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                      {item.member.name}
-                    </div>
-                    <div className="text-xs font-extrabold text-slate-900 dark:text-white tabular-nums mt-0.5">
-                      {formatCompactVND(item.amount)}
-                    </div>
-                    <div className="mt-2 h-1 rounded-full bg-slate-200/80 dark:bg-slate-700 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${item.percentage}%` }}
-                        transition={{ type: 'spring', stiffness: 130, damping: 20 }}
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: item.member.color }}
-                      />
-                    </div>
                   </motion.button>
-                );
-              })}
-            </div>
-          </section>
-        </div>
-
-        {/* Right Column: Auto Trend Preview & Recent Transactions */}
-        <div className="lg:col-span-5 space-y-5">
-          <section className="card-surface rounded-3xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                {miniTrendMode === 'day'
-                  ? 'Chi tiêu 7 ngày tuần này'
-                  : miniTrendMode === 'week'
-                    ? 'Các tuần trong tháng'
-                    : '6 tháng gần nhất'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => onNavigateTab('analytics')}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-600 transition-colors cursor-pointer"
-                aria-label="Mở phân tích đầy đủ"
-              >
-                <ArrowUpRight size={16} />
-              </button>
-            </div>
-
-            <TrendBarChart buckets={miniTrendBuckets} />
-          </section>
-
-          <section className="card-surface rounded-3xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Giao dịch gần đây
-              </h3>
-              <button
-                type="button"
-                onClick={() => onNavigateTab('history')}
-                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-              >
-                <span>Lịch sử</span>
-                <ArrowRight size={14} />
-              </button>
-            </div>
-
-            {recentTxs.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-6">
-                Chưa có giao dịch nào được ghi nhận.
-              </p>
-            ) : (
-              <div className="-mx-2 divide-y divide-slate-100 dark:divide-slate-800/70">
-                {recentTxs.map((tx) => (
-                  <TransactionRow
-                    key={tx.id}
-                    transaction={tx}
-                    category={catMap.get(tx.categoryId)}
-                    member={memMap.get(tx.memberId)}
-                    onEdit={onEditTransaction}
-                    onDelete={deleteTransaction}
-                    showDate
-                  />
                 ))}
               </div>
-            )}
-          </section>
-        </div>
+            </div>
+          )}
+        </section>
+
+        {/* Recent Transactions */}
+        <section className="lg:col-span-6 card-surface rounded-3xl p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+              Giao dịch gần đây
+            </h3>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('history')}
+              className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+            >
+              <span>Tất cả</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+
+          {recentTxs.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-8">
+              Chưa có giao dịch nào được ghi nhận.
+            </p>
+          ) : (
+            <div className="-mx-2 divide-y divide-slate-100 dark:divide-slate-800/70">
+              {recentTxs.map((tx) => (
+                <TransactionRow
+                  key={tx.id}
+                  transaction={tx}
+                  category={catMap.get(tx.categoryId)}
+                  member={memMap.get(tx.memberId)}
+                  onEdit={onEditTransaction}
+                  onDelete={deleteTransaction}
+                  showDate
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

@@ -167,7 +167,7 @@ const AppShell: React.FC = () => {
   return (
     <div className="min-h-dvh flex flex-col lg:flex-row">
       {/* Desktop Sidebar Navigation */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:left-0 bg-white dark:bg-[#141923] border-r border-slate-200/70 dark:border-slate-800/80 px-4 py-6 z-30">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:left-0 bg-white dark:bg-[#121721] border-r border-slate-200/70 dark:border-slate-800/80 px-4 py-6 z-30">
         <div className="flex items-center gap-3 px-2 mb-6">
           <img
             src="/logo.png"
@@ -294,54 +294,36 @@ const AppShell: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 lg:pl-64 flex flex-col min-h-dvh">
-        {/* Mobile Top Sticky Header */}
-        <header className="lg:hidden sticky top-0 z-20 pt-safe bg-[#f4f6fa]/85 dark:bg-[#0b0e14]/85 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/60">
-          <div className="max-w-3xl mx-auto px-4 h-15 flex items-center justify-between gap-2">
+        {/* Mobile Top Sticky Header — Pure Minimalist */}
+        <header className="lg:hidden sticky top-0 z-20 pt-safe bg-[#f5f7fb]/85 dark:bg-[#090c12]/85 backdrop-blur-xl">
+          <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <img
                 src="/logo.png"
                 alt="TíchGóp"
-                className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 dark:border-slate-700 object-cover shadow-sm shadow-emerald-500/15 shrink-0"
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 dark:border-slate-700 object-cover shadow-xs shrink-0"
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">
+                  <span className="text-[15px] font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">
                     TíchGóp
+                  </span>
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                    style={{ backgroundColor: activeMember.color }}
+                  >
+                    {activeMember.name}
                   </span>
                   {!isOnline && (
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
                       <WifiOff size={10} />
-                      Offline
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] font-medium text-slate-400 leading-tight truncate">
-                  {activeMember.name} • {state.settings.familyName}
-                </p>
               </div>
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setReceiptOpen(true)}
-                className="p-2.5 rounded-xl bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 cursor-pointer"
-                aria-label="Quét hóa đơn"
-              >
-                <ScanLine size={17} />
-              </motion.button>
-
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setVoiceOpen(true)}
-                className="p-2.5 rounded-xl bg-violet-500/12 text-violet-700 dark:text-violet-300 cursor-pointer"
-                aria-label="Nhập giọng nói"
-              >
-                <Mic size={17} />
-              </motion.button>
-
               {canInstall && (
                 <motion.button
                   type="button"
@@ -350,7 +332,8 @@ const AppShell: React.FC = () => {
                   className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-sm shadow-emerald-500/25 cursor-pointer"
                   aria-label="Cài đặt PWA"
                 >
-                  <Download size={13} />
+                  <Download size={14} />
+                  <span>Cài app</span>
                 </motion.button>
               )}
 
@@ -358,17 +341,17 @@ const AppShell: React.FC = () => {
                 type="button"
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleQuickTheme}
-                className="p-2.5 rounded-xl bg-white dark:bg-[#141923] border border-slate-200/70 dark:border-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+                className="p-2 rounded-xl bg-white dark:bg-[#121721] border border-slate-200/70 dark:border-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
                 aria-label="Đổi giao diện sáng tối"
               >
-                {resolvedTheme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+                {resolvedTheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
               </motion.button>
             </div>
           </div>
         </header>
 
         {/* Active View Stage */}
-        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-28 lg:pb-12">
+        <main className="flex-1 w-full max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-3 lg:pt-6 pb-28 lg:pb-12">
           {/* Non-intrusive PWA New Version Update Pill */}
           <AnimatePresence>
             {swUpdateHandler && (
@@ -431,9 +414,9 @@ const AppShell: React.FC = () => {
         </main>
       </div>
 
-      {/* Mobile Glass Bottom Navigation Bar */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 glass-bar pb-safe">
-        <div className="max-w-lg mx-auto px-2 h-16 grid grid-cols-5 items-center">
+      {/* Creative Floating Frosted-Glass Bottom Dock */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 pointer-events-none px-3 pb-safe">
+        <nav className="pointer-events-auto max-w-md mx-auto floating-dock rounded-[1.75rem] px-1.5 h-[62px] grid grid-cols-5 items-center">
           {NAV_ITEMS.slice(0, 2).map((item) => {
             const active = activeTab === item.id;
             const Icon = item.icon;
@@ -442,25 +425,19 @@ const AppShell: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={() => handleNavigateTab(item.id)}
-                className={`relative flex flex-col items-center justify-center gap-0.5 py-1 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 transition-colors cursor-pointer ${
+                className={`relative flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 transition-colors cursor-pointer ${
                   active
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-slate-400 dark:text-slate-500'
                 }`}
               >
                 <motion.div
-                  animate={{ scale: active ? 1.08 : 1, y: active ? -1 : 0 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 24 }}
+                  animate={{ scale: active ? 1.1 : 1 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 24 }}
                 >
-                  <Icon size={21} strokeWidth={active ? 2.4 : 1.9} />
+                  <Icon size={20} strokeWidth={active ? 2.4 : 1.9} />
                 </motion.div>
-                <span className="text-[10px] font-bold">{item.label}</span>
-                {active && (
-                  <motion.span
-                    layoutId="mobileNavDot"
-                    className="absolute -bottom-0.5 w-5 h-1 rounded-full bg-emerald-500"
-                  />
-                )}
+                <span className="text-[10px] font-bold leading-none">{item.label}</span>
               </button>
             );
           })}
@@ -468,13 +445,13 @@ const AppShell: React.FC = () => {
           <div className="flex justify-center">
             <motion.button
               type="button"
-              whileHover={{ scale: 1.06 }}
+              whileHover={{ scale: 1.07 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => openQuickAdd()}
               aria-label="Thêm giao dịch mới"
-              className="-mt-7 w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-xl shadow-emerald-500/40 ring-4 ring-[#f4f6fa] dark:ring-[#0b0e14] cursor-pointer"
+              className="-mt-6 w-13 h-13 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 ring-4 ring-[#f5f7fb] dark:ring-[#090c12] cursor-pointer"
             >
-              <Plus size={28} strokeWidth={2.6} />
+              <Plus size={26} strokeWidth={2.6} />
             </motion.button>
           </div>
 
@@ -486,30 +463,24 @@ const AppShell: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={() => handleNavigateTab(item.id)}
-                className={`relative flex flex-col items-center justify-center gap-0.5 py-1 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 transition-colors cursor-pointer ${
+                className={`relative flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 transition-colors cursor-pointer ${
                   active
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-slate-400 dark:text-slate-500'
                 }`}
               >
                 <motion.div
-                  animate={{ scale: active ? 1.08 : 1, y: active ? -1 : 0 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 24 }}
+                  animate={{ scale: active ? 1.1 : 1 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 24 }}
                 >
-                  <Icon size={21} strokeWidth={active ? 2.4 : 1.9} />
+                  <Icon size={20} strokeWidth={active ? 2.4 : 1.9} />
                 </motion.div>
-                <span className="text-[10px] font-bold">{item.label}</span>
-                {active && (
-                  <motion.span
-                    layoutId="mobileNavDot"
-                    className="absolute -bottom-0.5 w-5 h-1 rounded-full bg-emerald-500"
-                  />
-                )}
+                <span className="text-[10px] font-bold leading-none">{item.label}</span>
               </button>
             );
           })}
-        </div>
-      </nav>
+        </nav>
+      </div>
 
       {/* Modals (Scanner & Voice lazy-loaded only when opened) */}
       <TransactionModal

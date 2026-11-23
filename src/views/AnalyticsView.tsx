@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
   ChevronLeft,
   ChevronRight,
   Lightbulb,
@@ -114,7 +112,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         anchorDate,
         state.settings.monthlyBudget,
       ),
-    [state.transactions, state.categories, state.members, trendMode, anchorDate, state.settings.monthlyBudget],
+    [
+      state.transactions,
+      state.categories,
+      state.members,
+      trendMode,
+      anchorDate,
+      state.settings.monthlyBudget,
+    ],
   );
 
   const shiftPeriod = (delta: number) => {
@@ -142,27 +147,27 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   const periodHeadline =
     trendMode === 'day'
-      ? `Các ngày • ${periodRange.label}`
+      ? periodRange.label
       : trendMode === 'week'
-        ? `Các tuần • Tháng ${anchorDate.getMonth() + 1}/${anchorDate.getFullYear()}`
-        : `6 tháng đến T${anchorDate.getMonth() + 1}/${anchorDate.getFullYear()}`;
+        ? `Tháng ${anchorDate.getMonth() + 1}/${anchorDate.getFullYear()}`
+        : `6 tháng → T${anchorDate.getMonth() + 1}/${anchorDate.getFullYear()}`;
 
   const maxBucketExpense = Math.max(1, ...buckets.map((b) => b.expense));
 
   return (
-    <div className="space-y-5">
-      {/* Header & Grouping Mode Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+    <div className="space-y-4">
+      {/* Compact Header & Grouping Switcher */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
           Phân tích
         </h2>
 
-        <div className="grid grid-cols-3 p-1 rounded-2xl bg-white dark:bg-[#141923] border border-slate-200/70 dark:border-slate-800 shadow-xs w-full sm:w-72">
+        <div className="inline-grid grid-cols-3 p-1 rounded-2xl bg-white dark:bg-[#121721] border border-slate-200/70 dark:border-slate-800 shadow-xs">
           {(
             [
-              { id: 'day', label: 'Theo Ngày' },
-              { id: 'week', label: 'Theo Tuần' },
-              { id: 'month', label: 'Theo Tháng' },
+              { id: 'day', label: 'Ngày' },
+              { id: 'week', label: 'Tuần' },
+              { id: 'month', label: '6 Tháng' },
             ] as const
           ).map((m) => {
             const active = trendMode === m.id;
@@ -174,7 +179,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   setTrendMode(m.id);
                   setAnchorDate(getToday());
                 }}
-                className={`relative py-2 rounded-xl text-xs font-bold transition-colors z-10 cursor-pointer ${
+                className={`relative px-3 py-1.5 rounded-xl text-xs font-bold transition-colors z-10 cursor-pointer whitespace-nowrap ${
                   active ? 'text-white' : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
@@ -192,31 +197,31 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </div>
       </div>
 
-      {/* Period Navigation & KPI Strip */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-5 flex items-center justify-between gap-2 card-surface rounded-2xl p-2">
+      {/* Unified Period Stepper + 3-Metric Strip */}
+      <section className="card-surface rounded-3xl p-3.5 sm:p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
           <motion.button
             type="button"
             whileTap={{ scale: 0.9 }}
             onClick={() => shiftPeriod(-1)}
-            className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 cursor-pointer"
             aria-label="Khoảng trước"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} />
           </motion.button>
 
-          <div className="text-center px-2">
-            <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
               {periodHeadline}
-            </div>
+            </span>
             {!isCurrentAnchor && (
               <button
                 type="button"
                 onClick={() => setAnchorDate(getToday())}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 cursor-pointer"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/12 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 cursor-pointer shrink-0"
               >
-                <RotateCcw size={11} />
-                <span>Về hiện tại</span>
+                <RotateCcw size={10} />
+                <span>Hiện tại</span>
               </button>
             )}
           </div>
@@ -225,65 +230,57 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             type="button"
             whileTap={{ scale: 0.9 }}
             onClick={() => shiftPeriod(1)}
-            className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 cursor-pointer"
             aria-label="Khoảng sau"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} />
           </motion.button>
         </div>
 
-        <div className="lg:col-span-7 grid grid-cols-3 gap-2.5">
-          <div className="card-surface rounded-2xl p-3">
-            <div className="flex items-center gap-1 text-[11px] font-semibold text-rose-500">
-              <ArrowUpRight size={13} />
-              <span>Tổng chi</span>
-            </div>
-            <div className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tabular-nums mt-1 truncate">
+        <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 rounded-2xl bg-slate-50/90 dark:bg-slate-800/50 py-2.5">
+          <div className="px-2.5 text-center">
+            <div className="text-[10px] font-bold text-rose-500 uppercase tracking-wide">Chi</div>
+            <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white tabular-nums mt-0.5 truncate">
               {formatCompactVND(totals.expense)}
             </div>
           </div>
-
-          <div className="card-surface rounded-2xl p-3">
-            <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-500">
-              <ArrowDownLeft size={13} />
-              <span>Tổng thu</span>
-            </div>
-            <div className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums mt-1 truncate">
+          <div className="px-2.5 text-center">
+            <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Thu</div>
+            <div className="text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums mt-0.5 truncate">
               {formatCompactVND(totals.income)}
             </div>
           </div>
-
-          <div className="card-surface rounded-2xl p-3">
-            <div className="text-[11px] font-semibold text-slate-400">Tỷ lệ tiết kiệm</div>
-            <div className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tabular-nums mt-1">
+          <div className="px-2.5 text-center">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Tiết kiệm</div>
+            <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white tabular-nums mt-0.5">
               {totals.income > 0 ? `${totals.savingsRate}%` : '–'}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Main Chart + Period Breakdown Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <section className="lg:col-span-7 card-surface rounded-3xl p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <section className="lg:col-span-7 card-surface rounded-3xl p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-2 mb-3.5">
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
               {trendMode === 'day'
-                ? 'Chi tiêu từng ngày (T2 – CN)'
+                ? 'Biểu đồ T2 – CN'
                 : trendMode === 'week'
-                  ? 'Tổng hợp từng tuần'
+                  ? 'Biểu đồ các tuần'
                   : 'Xu hướng 6 tháng'}
             </h3>
 
             <button
               type="button"
               onClick={() => setShowIncome((v) => !v)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                 showIncome
                   ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
                   : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
               }`}
             >
-              {showIncome ? 'Đang hiện: Thu & Chi' : 'So sánh Thu & Chi'}
+              {showIncome ? 'Thu & Chi' : '+ So sánh Thu'}
             </button>
           </div>
 
@@ -291,44 +288,44 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </section>
 
         {/* Detailed Auto-Summed Slice Breakdown */}
-        <section className="lg:col-span-5 card-surface rounded-3xl p-5">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">
-            Tổng hợp chi tiết
+        <section className="lg:col-span-5 card-surface rounded-3xl p-4 sm:p-5">
+          <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mb-3">
+            Chi tiết từng kỳ
           </h3>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {buckets.map((b) => {
               const pct = Math.round((b.expense / maxBucketExpense) * 100);
               return (
                 <div
                   key={b.key}
-                  className={`p-3 rounded-2xl border transition-colors ${
+                  className={`px-3 py-2.5 rounded-2xl border transition-colors ${
                     b.isCurrent
                       ? 'bg-emerald-500/8 border-emerald-500/25'
                       : 'bg-slate-50/80 dark:bg-slate-800/45 border-transparent'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <span className="text-xs font-extrabold text-slate-900 dark:text-white">
                         {b.label}
                       </span>
-                      <span className="text-[11px] text-slate-400 tabular-nums">
+                      <span className="text-[10px] text-slate-400 tabular-nums truncate">
                         {b.subLabel}
                       </span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <span className="text-xs font-extrabold text-slate-900 dark:text-white tabular-nums">
                         {formatVND(b.expense)}
                       </span>
                       {b.income > 0 && (
-                        <span className="ml-2 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        <span className="ml-1.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
                           +{formatCompactVND(b.income)}
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2 mt-1.5">
                     <div className="flex-1 h-1.5 rounded-full bg-slate-200/70 dark:bg-slate-700 overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
@@ -350,32 +347,30 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
       {/* Smart Family Insights */}
       {insights.length > 0 && (
-        <section className="space-y-3">
+        <section className="space-y-2.5">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
-              <Lightbulb size={15} />
-            </div>
-            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-              Nhận xét thông minh cho gia đình
+            <Lightbulb size={15} className="text-amber-500" />
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Nhận xét nhanh
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
             {insights.map((ins, i) => (
               <motion.div
                 key={ins.id}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06 }}
-                className={`rounded-2xl p-4 border ${TONE_STYLES[ins.tone]}`}
+                transition={{ delay: i * 0.05 }}
+                className={`rounded-2xl p-3.5 border ${TONE_STYLES[ins.tone]}`}
               >
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-white/70 dark:bg-slate-900/50 shrink-0">
-                    <DynamicIcon name={ins.icon} size={18} />
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-xl bg-white/70 dark:bg-slate-900/50 shrink-0">
+                    <DynamicIcon name={ins.icon} size={16} />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h4 className="text-xs font-extrabold leading-snug">{ins.title}</h4>
-                    <p className="text-[11px] opacity-85 mt-1 leading-relaxed">{ins.detail}</p>
+                    <p className="text-[11px] opacity-85 mt-0.5 leading-relaxed">{ins.detail}</p>
                   </div>
                 </div>
               </motion.div>
@@ -385,43 +380,43 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       )}
 
       {/* Detailed Category Classification & Family Member Split */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <section className="lg:col-span-8 card-surface rounded-3xl p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <section className="lg:col-span-8 card-surface rounded-3xl p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/12 text-emerald-500 flex items-center justify-center">
-                <PieChart size={17} />
+              <div className="w-7 h-7 rounded-xl bg-emerald-500/12 text-emerald-500 flex items-center justify-center">
+                <PieChart size={15} />
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Phân loại chi tiết
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                Phân loại
               </h3>
             </div>
 
-            <div className="flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800">
+            <div className="flex p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800">
               {(['expense', 'income'] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => setBreakdownType(t)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                     breakdownType === t
                       ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                       : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
-                  {t === 'expense' ? 'Chi tiêu' : 'Thu nhập'}
+                  {t === 'expense' ? 'Chi' : 'Thu'}
                 </button>
               ))}
             </div>
           </div>
 
           {catBreakdown.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-10">
-              Chưa có dữ liệu {breakdownType === 'expense' ? 'chi tiêu' : 'thu nhập'} trong khoảng thời gian này.
+            <p className="text-xs text-slate-400 text-center py-8">
+              Chưa có dữ liệu trong khoảng này.
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-              <div className="md:col-span-5 flex justify-center pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+              <div className="md:col-span-5 flex justify-center">
                 <CategoryDonutChart
                   items={catBreakdown}
                   totalAmount={catBreakdownTotal}
@@ -430,7 +425,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 />
               </div>
 
-              <div className="md:col-span-7 space-y-2.5">
+              <div className="md:col-span-7 space-y-2">
                 {catBreakdown.map((item) => {
                   const showBudget =
                     breakdownType === 'expense' &&
@@ -446,20 +441,20 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       key={item.category.id}
                       type="button"
                       onClick={() => onSelectCategoryInHistory(item.category.id)}
-                      className="w-full text-left p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/45 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      className="w-full text-left p-2.5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/45 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2.5">
                         <CategoryIconBadge
                           icon={item.category.icon}
                           color={item.category.color}
-                          size="md"
+                          size="sm"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                            <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
                               {item.category.name}
                             </span>
-                            <span className="text-sm font-extrabold text-slate-900 dark:text-white tabular-nums shrink-0">
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white tabular-nums shrink-0">
                               {formatVND(item.amount)}
                             </span>
                           </div>
@@ -467,11 +462,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             <span>
                               {item.count} lần • TB {formatCompactVND(item.avgAmount)}
                             </span>
-                            <span className="font-bold tabular-nums" style={{ color: item.category.color }}>
+                            <span
+                              className="font-bold tabular-nums"
+                              style={{ color: item.category.color }}
+                            >
                               {item.percentage.toFixed(1)}%
                             </span>
                           </div>
-                          <div className="mt-2 h-1.5 rounded-full bg-slate-200/70 dark:bg-slate-700 overflow-hidden">
+                          <div className="mt-1.5 h-1.5 rounded-full bg-slate-200/70 dark:bg-slate-700 overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${Math.max(3, item.percentage)}%` }}
@@ -481,9 +479,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             />
                           </div>
                           {showBudget && budgetPct !== null && (
-                            <div className="flex items-center justify-between mt-1.5 text-[10px]">
+                            <div className="flex items-center justify-between mt-1 text-[10px]">
                               <span className="text-slate-400">
-                                Hạn mức tháng: {formatCompactVND(item.category.budget!)}
+                                Hạn mức: {formatCompactVND(item.category.budget!)}
                               </span>
                               <span
                                 className={`font-bold tabular-nums ${
@@ -494,7 +492,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                                       : 'text-emerald-600 dark:text-emerald-400'
                                 }`}
                               >
-                                Đã dùng {budgetPct}%
+                                {budgetPct}%
                               </span>
                             </div>
                           )}
@@ -509,47 +507,47 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </section>
 
         {/* Family Member Split */}
-        <section className="lg:col-span-4 card-surface rounded-3xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-violet-500/12 text-violet-500 flex items-center justify-center">
-              <Users size={17} />
+        <section className="lg:col-span-4 card-surface rounded-3xl p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-3.5">
+            <div className="w-7 h-7 rounded-xl bg-violet-500/12 text-violet-500 flex items-center justify-center">
+              <Users size={15} />
             </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              Theo thành viên
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+              Thành viên
             </h3>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {memberBreakdown.map((m) => (
               <div
                 key={m.member.id}
-                className="p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/45 border border-slate-100 dark:border-slate-800"
+                className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/45 border border-slate-100/80 dark:border-slate-800"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                     style={{ backgroundColor: `${m.member.color}1E`, color: m.member.color }}
                   >
-                    <DynamicIcon name={m.member.icon} size={19} />
+                    <DynamicIcon name={m.member.icon} size={17} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
                         {m.member.name}
                       </span>
-                      <span className="text-sm font-extrabold text-slate-900 dark:text-white tabular-nums">
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white tabular-nums">
                         {formatCompactVND(m.amount)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 mt-0.5">
-                      <span>{m.count} khoản chi</span>
-                      <span className="font-bold" style={{ color: m.member.color }}>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>{m.count} khoản</span>
+                      <span className="font-bold tabular-nums" style={{ color: m.member.color }}>
                         {Math.round(m.percentage)}%
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="mt-2.5 h-1.5 rounded-full bg-slate-200/70 dark:bg-slate-700 overflow-hidden">
+                <div className="mt-2 h-1.5 rounded-full bg-slate-200/70 dark:bg-slate-700 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${m.percentage}%` }}

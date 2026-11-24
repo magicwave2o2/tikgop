@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import { formatCompactVND, formatVND } from '../utils/format';
 
 interface AnimatedCurrencyProps {
@@ -9,51 +9,60 @@ interface AnimatedCurrencyProps {
   className?: string;
 }
 
-export const AnimatedCurrency: React.FC<AnimatedCurrencyProps> = ({
-  value,
-  compact = false,
-  showUnit = true,
-  signed = false,
-  className = '',
-}) => {
-  const [display, setDisplay] = useState(value);
-  const prevRef = useRef(value);
+function formatVal(val: number, compact: boolean, showUnit: boolean, signed: boolean): string {
+  const rounded = Math.round(val);
+  return compact ? formatCompactVND(rounded) : formatVND(rounded, { showUnit, signed });
+}
 
-  useEffect(() => {
-    const startVal = prevRef.current;
-    const endVal = value;
-    if (startVal === endVal) return;
+/**
+ * Zero-re-render rolling currency readout: mutates textContent directly inside rAF
+ * so iOS Safari/PWA never runs 25-30 React reconciliation passes per number transition.
+ */
+export const AnimatedCurrency: React.FC<AnimatedCurrencyProps> = memo(
+  ({ value, compact = false, showUnit = true, signed = false, className = '' }) => {
+    const spanRef = useRef<HTMLSpanElement>(null);
+    const prevRef = useRef<number>(value);
 
-    const duration = 420;
-    const startTime = performance.now();
-    let rafId = 0;
+    useEffect(() => {
+      const el = spanRef.current;
+      if (!el) return;
 
-    const tick = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(1, elapsed / duration);
-      // Cubic ease-out for silky smooth settle
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = startVal + (endVal - startVal) * eased;
-      setDisplay(current);
-
-      if (progress < 1) {
-        rafId = requestAnimationFrame(tick);
-      } else {
-        prevRef.current = endVal;
-        setDisplay(endVal);
+      const startVal = prevRef.current;
+      const endVal = value;
+      if (startVal === endVal) {
+        el.textContent = formatVal(endVal, compact, showUnit, signed);
+        return;
       }
-    };
 
-    rafId = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(rafId);
-      prevRef.current = endVal;
-    };
-  }, [value]);
+      const duration = 240;
+      const startTime = performance.now();
+      let rafId = 0;
 
-  const formatted = compact
-    ? formatCompactVND(Math.round(display))
-    : formatVND(Math.round(display), { showUnit, signed });
+      const tick = (now: number) => {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - (1 - progress) * (1 - progress) * (1 - progress);
+        const current = startVal + (endVal - startVal) * eased;
+        el.textContent = formatVal(current, compact, showUnit, signed);
 
-  return <span className={`tabular-nums ${className}`}>{formatted}</span>;
-};
+        if (progress < 1) {
+          rafId = requestAnimationFrame(tick);
+        } else {
+          prevRef.current = endVal;
+          el.textContent = formatVal(endVal, compact, showUnit, signed);
+        }
+      };
+
+      rafId = requestAnimationFrame(tick);
+      return () => {
+        cancelAnimationFrame(rafId);
+        prevRef.current = endVal;
+      };
+    }, [value, compact, showUnit, signed]);
+
+    return (
+      <span ref={spanRef} className={`tabular-nums ${className}`}>
+        {formatVal(value, compact, showUnit, signed)}
+      </span>
+    );
+  },
+);

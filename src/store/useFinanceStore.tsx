@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DEFAULT_CATEGORIES,
   DEFAULT_MEMBERS,
@@ -26,14 +26,17 @@ interface UndoToastState {
   deletedTx?: Transaction;
 }
 
+interface ToastContextValue {
+  toast: UndoToastState | null;
+  dismissToast: () => void;
+  undoDelete: () => void;
+}
+
 interface FinanceContextValue {
   state: FinanceState;
   activeMember: FamilyMember;
   hasSelectedDeviceMember: boolean;
   resolvedTheme: 'light' | 'dark';
-  toast: UndoToastState | null;
-  dismissToast: () => void;
-  undoDelete: () => void;
   setActiveMember: (memberId: string, silent?: boolean) => void;
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt'>) => Transaction;
   addTransactionsBatch: (txs: Array<Omit<Transaction, 'id' | 'createdAt'>>) => Transaction[];
@@ -52,6 +55,7 @@ interface FinanceContextValue {
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
+const ToastContext = createContext<ToastContextValue | null>(null);
 
 function migrateCategoriesAndTransactions(
   parsed: Partial<FinanceState>,
@@ -181,14 +185,47 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       : false,
   );
 
-  // Persist to localStorage immediately on state change
+  const latestStateRef = useRef<FinanceState>(state);
+  latestStateRef.current = state;
+  const dirtyRef = useRef(false);
+
+  // Defer localStorage JSON serialization off the critical iOS tap/animation frame,
+  // with an immediate pagehide/visibilitychange flush safeguard so zero data is ever lost.
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // Ignore quota errors gracefully
-    }
+    dirtyRef.current = true;
+    const timer = window.setTimeout(() => {
+      if (!dirtyRef.current) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(latestStateRef.current));
+        dirtyRef.current = false;
+      } catch {
+        // Ignore quota errors gracefully
+      }
+    }, 160);
+    return () => window.clearTimeout(timer);
   }, [state]);
+
+  useEffect(() => {
+    const flush = () => {
+      if (!dirtyRef.current) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(latestStateRef.current));
+        dirtyRef.current = false;
+      } catch {
+        // Ignore quota errors gracefully
+      }
+    };
+    const onVisChange = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisChange);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisChange);
+      flush();
+    };
+  }, []);
 
   // Listen to OS theme preference
   useEffect(() => {
@@ -545,9 +582,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       activeMember,
       hasSelectedDeviceMember,
       resolvedTheme,
-      toast,
-      dismissToast,
-      undoDelete,
       setActiveMember,
       addTransaction,
       addTransactionsBatch,
@@ -569,9 +603,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       activeMember,
       hasSelectedDeviceMember,
       resolvedTheme,
-      toast,
-      dismissToast,
-      undoDelete,
       setActiveMember,
       addTransaction,
       addTransactionsBatch,
@@ -590,11 +621,30 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     ],
   );
 
-  return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
+  const toastValue = useMemo<ToastContextValue>(
+    () => ({
+      toast,
+      dismissToast,
+      undoDelete,
+    }),
+    [toast, dismissToast, undoDelete],
+  );
+
+  return (
+    <FinanceContext.Provider value={value}>
+      <ToastContext.Provider value={toastValue}>{children}</ToastContext.Provider>
+    </FinanceContext.Provider>
+  );
 };
 
 export function useFinance(): FinanceContextValue {
   const ctx = useContext(FinanceContext);
   if (!ctx) throw new Error('useFinance must be used inside FinanceProvider');
+  return ctx;
+}
+
+export function useToast(): ToastContextValue {
+  const ctx = useContext(ToastContext);
+  if (!ctx) throw new Error('useToast must be used inside FinanceProvider');
   return ctx;
 }

@@ -130,22 +130,73 @@ export interface QuickRollups {
 
 export function computeQuickRollups(transactions: Transaction[]): QuickRollups {
   const today = getToday();
-  const day = computePeriodSummary(transactions, 'day', today);
-  const week = computePeriodSummary(transactions, 'week', today);
-  const month = computePeriodSummary(transactions, 'month', today);
-  const year = computePeriodSummary(transactions, 'year', today);
+  const todayKey = toDateKey(today);
+  const weekStartKey = toDateKey(getStartOfWeek(today));
+  const weekEndKey = toDateKey(getEndOfWeek(today));
+  const prevWeekStartKey = toDateKey(addDays(getStartOfWeek(today), -7));
+  const prevWeekEndKey = toDateKey(addDays(getEndOfWeek(today), -7));
+  const monthPrefix = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-`;
+  const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const prevMonthPrefix = `${prevMonthDate.getFullYear()}-${pad2(prevMonthDate.getMonth() + 1)}-`;
+  const yearPrefix = `${today.getFullYear()}-`;
+
+  let todayExpense = 0;
+  let todayCount = 0;
+  let weekExpense = 0;
+  let weekCount = 0;
+  let prevWeekExpense = 0;
+  let monthExpense = 0;
+  let monthIncome = 0;
+  let monthCount = 0;
+  let prevMonthExpense = 0;
+  let yearExpense = 0;
+
+  for (const tx of transactions) {
+    const d = tx.date;
+    const isExp = tx.type === 'expense';
+
+    if (isExp) {
+      if (d === todayKey) {
+        todayExpense += tx.amount;
+        todayCount++;
+      }
+      if (d >= weekStartKey && d <= weekEndKey) {
+        weekExpense += tx.amount;
+        weekCount++;
+      } else if (d >= prevWeekStartKey && d <= prevWeekEndKey) {
+        prevWeekExpense += tx.amount;
+      }
+      if (d.startsWith(monthPrefix)) {
+        monthExpense += tx.amount;
+        monthCount++;
+      } else if (d.startsWith(prevMonthPrefix)) {
+        prevMonthExpense += tx.amount;
+      }
+      if (d.startsWith(yearPrefix)) {
+        yearExpense += tx.amount;
+      }
+    } else if (d.startsWith(monthPrefix)) {
+      monthIncome += tx.amount;
+    }
+  }
 
   return {
-    todayExpense: day.totalExpense,
-    todayCount: day.expenseCount,
-    weekExpense: week.totalExpense,
-    weekCount: week.expenseCount,
-    weekDeltaPct: week.expenseDeltaPct,
-    monthExpense: month.totalExpense,
-    monthIncome: month.totalIncome,
-    monthCount: month.expenseCount,
-    monthDeltaPct: month.expenseDeltaPct,
-    yearExpense: year.totalExpense,
+    todayExpense,
+    todayCount,
+    weekExpense,
+    weekCount,
+    weekDeltaPct:
+      prevWeekExpense > 0
+        ? Math.round(((weekExpense - prevWeekExpense) / prevWeekExpense) * 100)
+        : null,
+    monthExpense,
+    monthIncome,
+    monthCount,
+    monthDeltaPct:
+      prevMonthExpense > 0
+        ? Math.round(((monthExpense - prevMonthExpense) / prevMonthExpense) * 100)
+        : null,
+    yearExpense,
   };
 }
 

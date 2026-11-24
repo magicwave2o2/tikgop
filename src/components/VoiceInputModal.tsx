@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
   Calendar,
@@ -441,27 +440,18 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
   const singleItem = mergedItems[0] || null;
   const isAiPowered = Boolean(aiItems && aiItems.length > 0);
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-950/60 dark:bg-black/70 backdrop-blur-md"
-          />
+  if (!open) return null;
 
-          <motion.div
-            initial={{ y: '100%', opacity: 0.85 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '100%', opacity: 0.85 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-            className="relative z-10 w-full sm:max-w-lg max-h-[92dvh] flex flex-col modal-surface rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden"
-          >
-            {/* Header with Hands-Free Auto-Save Toggle */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-white/[0.07] gap-2">
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/55 dark:bg-black/72 sm:backdrop-blur-xs animate-ios-fade"
+      />
+
+      <div className="relative z-10 w-full sm:max-w-lg max-h-[92dvh] flex flex-col modal-surface rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden animate-ios-sheet">
+        {/* Header with Hands-Free Auto-Save Toggle */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-white/[0.07] gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-2xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
                   <Mic size={19} />
@@ -498,38 +488,24 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-              {/* Interactive Pulsing Microphone Stage */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
+              {/* Interactive Pulsing Microphone Stage (100% GPU CSS keyframes) */}
               <div className="flex flex-col items-center justify-center py-1">
                 <div className="relative flex items-center justify-center">
                   {isListening && (
                     <>
-                      <motion.span
-                        initial={{ scale: 1, opacity: 0.55 }}
-                        animate={{ scale: 1.85, opacity: 0 }}
-                        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeOut' }}
-                        className="absolute w-20 h-20 rounded-full bg-violet-500/35 pointer-events-none"
-                      />
-                      <motion.span
-                        initial={{ scale: 1, opacity: 0.45 }}
-                        animate={{ scale: 1.5, opacity: 0 }}
-                        transition={{
-                          duration: 1.4,
-                          delay: 0.45,
-                          repeat: Infinity,
-                          ease: 'easeOut',
-                        }}
-                        className="absolute w-20 h-20 rounded-full bg-emerald-500/35 pointer-events-none"
+                      <span className="absolute w-20 h-20 rounded-full bg-violet-500/35 pointer-events-none animate-ios-ripple" />
+                      <span
+                        className="absolute w-20 h-20 rounded-full bg-emerald-500/35 pointer-events-none animate-ios-ripple"
+                        style={{ animationDelay: '0.45s' }}
                       />
                     </>
                   )}
 
-                  <motion.button
+                  <button
                     type="button"
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.92 }}
                     onClick={toggleListening}
-                    className={`relative z-10 w-18 h-18 rounded-full flex items-center justify-center text-white shadow-xl transition-all cursor-pointer ${
+                    className={`relative z-10 w-18 h-18 rounded-full flex items-center justify-center text-white shadow-xl active:scale-92 transition-transform duration-100 cursor-pointer ${
                       isListening
                         ? 'bg-gradient-to-tr from-rose-500 to-pink-500 shadow-rose-500/40'
                         : 'bg-gradient-to-tr from-violet-600 via-indigo-500 to-emerald-500 shadow-violet-500/35'
@@ -537,23 +513,17 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                     aria-label={isListening ? 'Dừng ghi âm' : 'Bắt đầu nói'}
                   >
                     {isListening ? <MicOff size={28} /> : <Mic size={28} />}
-                  </motion.button>
+                  </button>
                 </div>
 
                 <div className="h-6 flex items-center justify-center gap-1 mt-2.5">
                   {isListening ? (
                     <>
                       {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
-                        <motion.span
+                        <span
                           key={idx}
-                          animate={{ height: [5, 20 - Math.abs(3 - idx) * 2.5, 7] }}
-                          transition={{
-                            duration: 0.52,
-                            delay: idx * 0.08,
-                            repeat: Infinity,
-                            ease: 'easeInOut',
-                          }}
-                          className="w-1 rounded-full bg-gradient-to-t from-violet-500 to-emerald-400"
+                          className="w-1 h-5 rounded-full bg-gradient-to-t from-violet-500 to-emerald-400 animate-ios-eq"
+                          style={{ animationDelay: `${idx * 0.08}s` }}
                         />
                       ))}
                       <span className="ml-2 text-xs font-bold text-rose-500">Đang nghe...</span>
@@ -610,44 +580,33 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
               </div>
 
               {/* Hands-free Auto-Save Countdown Bar */}
-              <AnimatePresence>
-                {autoSaveCountdown !== null && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    className="p-3 rounded-2xl bg-emerald-500/12 border border-emerald-500/30 space-y-2"
-                  >
-                    <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Zap size={13} />
-                        Tự động lưu sau {Math.ceil(autoSaveCountdown)}s...
-                      </span>
-                      <button
-                        type="button"
-                        onClick={cancelAutoSave}
-                        className="px-2.5 py-0.5 rounded-lg bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-[11px] font-bold cursor-pointer"
-                      >
-                        Hủy
-                      </button>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-emerald-500/20 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all duration-100"
-                        style={{ width: `${Math.min(100, (autoSaveCountdown / 2.5) * 100)}%` }}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {autoSaveCountdown !== null && (
+                <div className="p-3 rounded-2xl bg-emerald-500/12 border border-emerald-500/30 space-y-2 animate-ios-fade">
+                  <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Zap size={13} />
+                      Tự động lưu sau {Math.ceil(autoSaveCountdown)}s...
+                    </span>
+                    <button
+                      type="button"
+                      onClick={cancelAutoSave}
+                      className="px-2.5 py-0.5 rounded-lg bg-white dark:bg-[#141b29] text-slate-700 dark:text-slate-200 text-[11px] font-bold cursor-pointer"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-emerald-500/20 overflow-hidden">
+                    <div
+                      className="h-full w-full rounded-full bg-emerald-500 origin-left transition-transform duration-100"
+                      style={{ transform: `scaleX(${Math.min(1, autoSaveCountdown / 2.5)})` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Smart Hybrid Extraction Preview (Instant Local + AI Semantic Refinement + Inline Category/Member Tweak) */}
               {mergedItems.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-3xl bg-gradient-to-br from-violet-500/8 via-emerald-500/6 to-teal-500/8 border border-emerald-500/25 space-y-3"
-                >
+                <div className="p-4 rounded-3xl bg-gradient-to-br from-violet-500/8 via-emerald-500/6 to-teal-500/8 border border-emerald-500/25 space-y-3 animate-ios-fade">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <span className="inline-flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
@@ -789,47 +748,40 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                           </div>
 
                           {/* Inline 1-Tap Category Switcher Strip */}
-                          <AnimatePresence initial={false}>
-                            {isEditingCat && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden border-t border-slate-100 dark:border-slate-800"
-                              >
-                                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar p-2 bg-slate-50/70 dark:bg-slate-950/40">
-                                  {availableCats.map((c) => {
-                                    const active = c.id === item.categoryId;
-                                    return (
-                                      <button
-                                        key={c.id}
-                                        type="button"
-                                        onClick={() => setCategoryForItem(item.id, c.id)}
-                                        className={`shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                                          active
-                                            ? 'text-white border-transparent'
-                                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
-                                        }`}
-                                        style={active ? { backgroundColor: c.color } : undefined}
-                                      >
-                                        <DynamicIcon
-                                          name={c.icon}
-                                          size={11}
-                                          style={!active ? { color: c.color } : undefined}
-                                        />
-                                        <span>{c.shortName}</span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                          {isEditingCat && (
+                            <div className="border-t border-slate-100 dark:border-white/[0.07] animate-ios-fade">
+                              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar p-2 bg-slate-50/70 dark:bg-[#0b1019]">
+                                {availableCats.map((c) => {
+                                  const active = c.id === item.categoryId;
+                                  return (
+                                    <button
+                                      key={c.id}
+                                      type="button"
+                                      onClick={() => setCategoryForItem(item.id, c.id)}
+                                      className={`shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-xl text-[11px] font-bold border transition-colors cursor-pointer ${
+                                        active
+                                          ? 'text-white border-transparent'
+                                          : 'bg-white dark:bg-[#141b29] text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-white/[0.08]'
+                                      }`}
+                                      style={active ? { backgroundColor: c.color } : undefined}
+                                    >
+                                      <DynamicIcon
+                                        name={c.icon}
+                                        size={11}
+                                        style={!active ? { color: c.color } : undefined}
+                                      />
+                                      <span>{c.shortName}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Clickable Sample Phrases */}
@@ -860,8 +812,8 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
               </div>
             </div>
 
-            {/* Pinned Footer */}
-            <div className="px-5 pt-2.5 pb-safe border-t border-slate-100 dark:border-white/[0.07] bg-white/95 dark:bg-[#0e131e]/95 backdrop-blur-md">
+            {/* Pinned Footer — solid surface, zero backdrop-blur cost on iOS */}
+            <div className="px-5 pt-2.5 pb-safe border-t border-slate-100 dark:border-white/[0.07] bg-white dark:bg-[#0e131e]">
               <div className={`grid gap-2.5 ${isMultiBatch ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {!isMultiBatch && (
                   <button
@@ -874,19 +826,18 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                       onClose();
                       onEditDraft(draft);
                     }}
-                    className="flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-bold disabled:opacity-40 cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-slate-100 dark:bg-white/[0.06] text-slate-800 dark:text-slate-100 text-xs font-bold disabled:opacity-40 active:scale-96 transition-transform duration-100 cursor-pointer"
                   >
                     <Edit3 size={15} />
                     <span>Chỉnh sửa</span>
                   </button>
                 )}
 
-                <motion.button
+                <button
                   type="button"
-                  whileTap={{ scale: 0.96 }}
                   disabled={validItems.length === 0}
                   onClick={handleSaveAll}
-                  className="flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-extrabold shadow-lg shadow-emerald-500/30 disabled:opacity-40 cursor-pointer"
+                  className="flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-extrabold shadow-lg shadow-emerald-500/30 disabled:opacity-40 active:scale-96 transition-transform duration-100 cursor-pointer"
                 >
                   <Check size={16} strokeWidth={2.5} />
                   <span>
@@ -894,12 +845,10 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                       ? `Lưu cả ${validItems.length} khoản (${formatVND(totalBatchAmount)})`
                       : 'Lưu giao dịch'}
                   </span>
-                </motion.button>
+                </button>
               </div>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </div>
   );
 };

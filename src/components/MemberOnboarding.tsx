@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { ArrowRight, Check } from 'lucide-react';
 import { useFinance } from '../store/useFinanceStore';
 import { DynamicIcon } from './IconRenderer';
@@ -15,25 +14,22 @@ export const MemberOnboarding: React.FC = () => {
 
   return (
     <div className="min-h-dvh w-full flex items-center justify-center p-4 sm:p-6 bg-[#f5f7fb] dark:bg-[#070a10] relative overflow-hidden">
-      {/* Soft ambient background orbs */}
-      <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-emerald-400/20 dark:bg-emerald-500/12 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-teal-400/20 dark:bg-teal-500/10 blur-3xl" />
+      {/* Zero-cost pure radial gradient aura (no GPU blur-3xl filter on iOS) */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-90"
+        style={{
+          background:
+            'radial-gradient(circle 280px at 12% 10%, rgba(16,185,129,0.16), transparent 70%), radial-gradient(circle 300px at 88% 92%, rgba(20,184,166,0.14), transparent 70%)',
+        }}
+      />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-        className="relative z-10 w-full max-w-md card-surface rounded-[2.25rem] p-6 sm:p-8 shadow-2xl"
-      >
+      <div className="relative z-10 w-full max-w-md card-surface rounded-[2.25rem] p-6 sm:p-8 shadow-2xl animate-ios-sheet">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center">
-          <motion.img
-            initial={{ scale: 0.85, rotate: -6 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 20 }}
+          <img
             src="/logo.png"
             alt="TíchGóp"
-            className="w-20 h-20 rounded-3xl bg-white border border-slate-200/80 dark:border-slate-700 object-cover shadow-xl shadow-emerald-500/20 mb-4"
+            className="w-20 h-20 rounded-3xl bg-white border border-slate-200/80 dark:border-white/15 object-cover shadow-xl shadow-emerald-500/20 mb-4"
           />
           <span className="px-3 py-1 rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold">
             {state.settings.familyName}
@@ -45,19 +41,14 @@ export const MemberOnboarding: React.FC = () => {
 
         {/* 4 Family Member Cards */}
         <div className="grid grid-cols-2 gap-3 mt-6">
-          {state.members.map((m, idx) => {
+          {state.members.map((m) => {
             const active = selectedId === m.id;
             return (
-              <motion.button
+              <button
                 key={m.id}
                 type="button"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.06 + idx * 0.05 }}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedId(m.id)}
-                className={`relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-3xl border-2 transition-all cursor-pointer ${
+                className={`relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-3xl border-2 active:scale-[0.95] transition-transform duration-100 cursor-pointer ${
                   active
                     ? 'bg-white dark:bg-[#172031] shadow-lg'
                     : 'bg-slate-50/80 dark:bg-white/[0.03] border-transparent hover:border-slate-200 dark:hover:border-white/12'
@@ -72,20 +63,18 @@ export const MemberOnboarding: React.FC = () => {
                 }
               >
                 {active && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
+                  <span
                     className="absolute top-3 right-3 w-6 h-6 rounded-full text-white flex items-center justify-center"
                     style={{ backgroundColor: m.color }}
                   >
                     <Check size={14} strokeWidth={3} />
-                  </motion.span>
+                  </span>
                 )}
 
                 <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all"
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
                   style={{
-                    backgroundColor: active ? m.color : `${m.color}1C`,
+                    backgroundColor: active ? m.color : `${m.color}20`,
                     color: active ? '#ffffff' : m.color,
                   }}
                 >
@@ -100,23 +89,22 @@ export const MemberOnboarding: React.FC = () => {
                     {m.role}
                   </div>
                 </div>
-              </motion.button>
+              </button>
             );
           })}
         </div>
 
         {/* Confirm CTA */}
-        <motion.button
+        <button
           type="button"
-          whileTap={{ scale: 0.97 }}
           disabled={!selectedId}
           onClick={handleConfirm}
-          className="mt-6 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-extrabold shadow-lg shadow-emerald-500/30 disabled:opacity-40 disabled:shadow-none transition-all cursor-pointer"
+          className="mt-6 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-extrabold shadow-lg shadow-emerald-500/30 disabled:opacity-40 disabled:shadow-none active:scale-[0.97] transition-transform duration-100 cursor-pointer"
         >
           <span>Bắt đầu</span>
           <ArrowRight size={17} strokeWidth={2.5} />
-        </motion.button>
-      </motion.div>
+        </button>
+      </div>
     </div>
   );
 };

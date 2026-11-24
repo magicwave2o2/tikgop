@@ -5,7 +5,7 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
-// Register PWA service worker with zero-stale-cache seamless updates across all family devices
+// Register PWA service worker cleanly without blocking iOS cold start or every app resume
 const hadController = Boolean(navigator.serviceWorker?.controller);
 let hasReloadedForUpdate = false;
 
@@ -22,10 +22,20 @@ registerSW({
   immediate: true,
   onRegisteredSW(_swUrl, registration) {
     if (!registration) return;
-    // Check immediately and whenever user switches back to the app
-    void registration.update();
+    let lastCheckedAt = Date.now();
+    const MIN_CHECK_INTERVAL_MS = 10 * 60 * 1000; // At most once per 10 minutes on iOS resume
+
+    // Defer initial update check so iOS cold-launch paint is never delayed
+    window.setTimeout(() => {
+      void registration.update();
+    }, 4000);
+
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
+      if (
+        document.visibilityState === 'visible' &&
+        Date.now() - lastCheckedAt > MIN_CHECK_INTERVAL_MS
+      ) {
+        lastCheckedAt = Date.now();
         void registration.update();
       }
     });

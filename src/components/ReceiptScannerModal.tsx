@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
   Camera,
@@ -239,27 +238,18 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
     onEditDraft(draft);
   };
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-950/60 dark:bg-black/70 backdrop-blur-md"
-          />
+  if (!open) return null;
 
-          <motion.div
-            initial={{ y: '100%', opacity: 0.85 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '100%', opacity: 0.85 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-            className="relative z-10 w-full sm:max-w-lg max-h-[92dvh] flex flex-col modal-surface rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-white/[0.07]">
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/55 dark:bg-black/72 sm:backdrop-blur-xs animate-ios-fade"
+      />
+
+      <div className="relative z-10 w-full sm:max-w-lg max-h-[92dvh] flex flex-col modal-surface rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden animate-ios-sheet">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-white/[0.07]">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <ScanLine size={19} />
@@ -296,7 +286,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
             />
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
               {error && (
                 <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium">
                   <AlertCircle size={16} className="shrink-0 mt-0.5" />
@@ -336,29 +326,27 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <motion.button
+                    <button
                       type="button"
-                      whileTap={{ scale: 0.96 }}
                       onClick={() => void handleOpenLiveCamera()}
-                      className="flex flex-col items-center justify-center gap-2.5 p-5 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 cursor-pointer"
+                      className="flex flex-col items-center justify-center gap-2.5 p-5 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 active:scale-96 transition-transform duration-100 cursor-pointer"
                     >
-                      <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
                         <Camera size={24} />
                       </div>
                       <span className="text-sm font-extrabold">Chụp hóa đơn</span>
-                    </motion.button>
+                    </button>
 
-                    <motion.button
+                    <button
                       type="button"
-                      whileTap={{ scale: 0.96 }}
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex flex-col items-center justify-center gap-2.5 p-5 rounded-3xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] text-slate-800 dark:text-slate-100 hover:border-emerald-400 dark:hover:border-emerald-400/50 transition-colors cursor-pointer"
+                      className="flex flex-col items-center justify-center gap-2.5 p-5 rounded-3xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] text-slate-800 dark:text-slate-100 hover:border-emerald-400 dark:hover:border-emerald-400/50 active:scale-96 transition-transform duration-100 cursor-pointer"
                     >
                       <div className="w-12 h-12 rounded-2xl bg-sky-500/15 text-sky-500 dark:text-sky-400 flex items-center justify-center">
                         <ImagePlus size={24} />
                       </div>
                       <span className="text-sm font-extrabold">Chọn ảnh bill</span>
-                    </motion.button>
+                    </button>
                   </div>
 
                   {/* Demo Receipts */}
@@ -371,12 +359,11 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {DEMO_RECEIPTS.map((demo) => (
-                        <motion.button
+                        <button
                           key={demo.id}
                           type="button"
-                          whileTap={{ scale: 0.95 }}
                           onClick={() => handleRunDemoReceipt(demo.id)}
-                          className="p-2.5 rounded-2xl bg-white dark:bg-[#141b29] border border-slate-200/70 dark:border-white/[0.07] hover:border-emerald-500 dark:hover:border-emerald-400/50 text-left transition-all cursor-pointer"
+                          className="p-2.5 rounded-2xl bg-white dark:bg-[#141b29] border border-slate-200/70 dark:border-white/[0.07] hover:border-emerald-500 dark:hover:border-emerald-400/50 text-left active:scale-95 transition-transform duration-100 cursor-pointer"
                         >
                           <div className="flex items-center justify-between mb-1">
                             <Receipt size={14} className="text-emerald-500" />
@@ -390,7 +377,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                           <div className="text-[10px] text-slate-400 truncate mt-0.5">
                             {demo.sub}
                           </div>
-                        </motion.button>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -426,15 +413,14 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                     >
                       Quay lại
                     </button>
-                    <motion.button
+                    <button
                       type="button"
-                      whileTap={{ scale: 0.96 }}
                       onClick={handleCapturePhotoFromCamera}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-extrabold shadow-lg shadow-emerald-500/30 cursor-pointer"
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-extrabold shadow-lg shadow-emerald-500/30 active:scale-96 transition-transform duration-100 cursor-pointer"
                     >
                       <Camera size={18} />
                       <span>Chụp & Quét hóa đơn</span>
-                    </motion.button>
+                    </button>
                   </div>
                 </div>
               )}
@@ -442,7 +428,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
               {/* STEP 3: SCANNING */}
               {step === 'scanning' && (
                 <div className="space-y-4 py-2">
-                  <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-700 max-h-64 flex items-center justify-center">
+                  <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-white/[0.08] max-h-64 flex items-center justify-center">
                     {previewUrl && (
                       <img
                         src={previewUrl}
@@ -450,12 +436,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                         className="max-h-64 w-auto object-contain opacity-90"
                       />
                     )}
-                    <motion.div
-                      initial={{ top: '6%' }}
-                      animate={{ top: ['6%', '88%', '6%'] }}
-                      transition={{ duration: 1.9, repeat: Infinity, ease: 'easeInOut' }}
-                      className="absolute inset-x-3 h-1 rounded-full bg-emerald-400 shadow-[0_0_20px_5px_rgba(16,185,129,0.75)]"
-                    />
+                    <div className="absolute top-3 inset-x-3 h-1 rounded-full bg-emerald-400 shadow-[0_0_16px_4px_rgba(16,185,129,0.75)] animate-ios-laser" />
                   </div>
 
                   <div className="space-y-2">
@@ -463,11 +444,10 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       <span className="text-emerald-600 dark:text-emerald-400">{statusText}</span>
                       <span className="tabular-nums text-slate-500">{progress}%</span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                      <motion.div
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.25 }}
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
+                    <div className="h-2 rounded-full bg-slate-100 dark:bg-white/[0.08] overflow-hidden">
+                      <div
+                        className="h-full w-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 origin-left transition-transform duration-200 ease-out"
+                        style={{ transform: `scaleX(${Math.max(0.02, progress / 100)})` }}
                       />
                     </div>
                   </div>
@@ -668,25 +648,22 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       <span>Chi tiết</span>
                     </button>
 
-                    <motion.button
+                    <button
                       type="button"
-                      whileTap={{ scale: 0.96 }}
                       onClick={() => void handleSaveDirectly()}
                       disabled={selectedAmount <= 0}
-                      className="col-span-6 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-extrabold shadow-lg shadow-emerald-500/30 disabled:opacity-40 cursor-pointer"
+                      className="col-span-6 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-extrabold shadow-lg shadow-emerald-500/30 disabled:opacity-40 active:scale-96 transition-transform duration-100 cursor-pointer"
                     >
                       <Check size={16} strokeWidth={2.5} />
                       <span>
                         {selectedAmount > 0 ? `Lưu • ${formatCompactVND(selectedAmount)}` : 'Lưu ngay'}
                       </span>
-                    </motion.button>
+                    </button>
                   </div>
                 </div>
               )}
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </div>
   );
 };

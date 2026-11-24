@@ -1,5 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { memo, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2,
   Database,
@@ -31,7 +30,7 @@ import { formatCompactVND, formatRawAmount, parseRawAmount } from '../utils/form
 
 const BUDGET_PRESETS = [15_000_000, 20_000_000, 25_000_000, 30_000_000, 40_000_000];
 
-export const SettingsView: React.FC = () => {
+export const SettingsView: React.FC = memo(() => {
   const {
     state,
     activeMember,
@@ -185,15 +184,14 @@ export const SettingsView: React.FC = () => {
             </div>
 
             {canInstall && (
-              <motion.button
+              <button
                 type="button"
-                whileTap={{ scale: 0.95 }}
                 onClick={() => void promptInstall()}
-                className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold cursor-pointer"
+                className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold active:scale-95 transition-transform duration-100 cursor-pointer"
               >
                 <Download size={14} />
                 <span>Cài app</span>
-              </motion.button>
+              </button>
             )}
           </div>
         </section>
@@ -257,13 +255,12 @@ export const SettingsView: React.FC = () => {
                       Đã lưu
                     </span>
                   )}
-                  <motion.button
+                  <button
                     type="submit"
-                    whileTap={{ scale: 0.96 }}
-                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm shadow-emerald-500/25 cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm shadow-emerald-500/25 active:scale-95 transition-transform duration-100 cursor-pointer"
                   >
                     Lưu
-                  </motion.button>
+                  </button>
                 </div>
               </div>
             </form>
@@ -289,7 +286,7 @@ export const SettingsView: React.FC = () => {
                     key={item.id}
                     type="button"
                     onClick={() => updateSettings({ theme: item.id })}
-                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                       active
                         ? 'bg-white dark:bg-[#1a2335] text-emerald-600 dark:text-emerald-300 shadow-xs'
                         : 'text-slate-500 dark:text-slate-400'
@@ -313,7 +310,7 @@ export const SettingsView: React.FC = () => {
                 <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
                   Dữ liệu
                 </h3>
-                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.06] text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
                   {state.transactions.length} GD
                 </span>
               </div>
@@ -331,7 +328,7 @@ export const SettingsView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setConfirmClear(false)}
-                    className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+                    className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 cursor-pointer"
                   >
                     Hủy
                   </button>
@@ -350,9 +347,8 @@ export const SettingsView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <motion.button
+              <button
                 type="button"
-                whileTap={{ scale: 0.96 }}
                 onClick={() =>
                   triggerDownload(
                     exportCSV(),
@@ -360,15 +356,14 @@ export const SettingsView: React.FC = () => {
                     'text/csv;charset=utf-8',
                   )
                 }
-                className="flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-[11px] sm:text-xs font-bold hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                className="flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-[11px] sm:text-xs font-bold hover:bg-emerald-500/20 active:scale-95 transition-transform duration-100 cursor-pointer"
               >
                 <FileSpreadsheet size={15} />
                 <span>Excel CSV</span>
-              </motion.button>
+              </button>
 
-              <motion.button
+              <button
                 type="button"
-                whileTap={{ scale: 0.96 }}
                 onClick={() =>
                   triggerDownload(
                     exportJSON(),
@@ -376,21 +371,20 @@ export const SettingsView: React.FC = () => {
                     'application/json',
                   )
                 }
-                className="flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl bg-sky-500/12 text-sky-700 dark:text-sky-300 text-[11px] sm:text-xs font-bold hover:bg-sky-500/20 transition-colors cursor-pointer"
+                className="flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl bg-sky-500/12 text-sky-700 dark:text-sky-300 text-[11px] sm:text-xs font-bold hover:bg-sky-500/20 active:scale-95 transition-transform duration-100 cursor-pointer"
               >
                 <Download size={15} />
                 <span>Sao lưu</span>
-              </motion.button>
+              </button>
 
-              <motion.button
+              <button
                 type="button"
-                whileTap={{ scale: 0.96 }}
                 onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl bg-slate-100 dark:bg-white/[0.05] dark:border dark:border-white/[0.07] text-slate-700 dark:text-slate-200 text-[11px] sm:text-xs font-bold hover:bg-slate-200 dark:hover:bg-white/[0.09] transition-colors cursor-pointer"
+                className="flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl bg-slate-100 dark:bg-white/[0.05] dark:border dark:border-white/[0.07] text-slate-700 dark:text-slate-200 text-[11px] sm:text-xs font-bold hover:bg-slate-200 dark:hover:bg-white/[0.09] active:scale-95 transition-transform duration-100 cursor-pointer"
               >
                 <Upload size={15} />
                 <span>Khôi phục</span>
-              </motion.button>
+              </button>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -433,7 +427,7 @@ export const SettingsView: React.FC = () => {
             {showMemberForm && (
               <form
                 onSubmit={handleCreateMember}
-                className="mb-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 space-y-2.5"
+                className="mb-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0b1019] border border-slate-200/70 dark:border-white/[0.07] space-y-2.5"
               >
                 <div className="grid grid-cols-2 gap-2">
                   <input
@@ -441,14 +435,14 @@ export const SettingsView: React.FC = () => {
                     placeholder="Tên (vd: Ông nội)"
                     value={memberName}
                     onChange={(e) => setMemberName(e.target.value)}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-emerald-500"
+                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#141b29] border border-slate-200 dark:border-white/[0.08] focus:outline-none focus:border-emerald-500"
                   />
                   <input
                     type="text"
                     placeholder="Vai trò"
                     value={memberRole}
                     onChange={(e) => setMemberRole(e.target.value)}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-emerald-500"
+                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#141b29] border border-slate-200 dark:border-white/[0.08] focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -460,7 +454,7 @@ export const SettingsView: React.FC = () => {
                       className={`p-1.5 rounded-xl border cursor-pointer ${
                         memberIcon === ic
                           ? 'bg-emerald-500 text-white border-emerald-500'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                          : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300'
                       }`}
                     >
                       <DynamicIcon name={ic} size={14} />
@@ -518,7 +512,7 @@ export const SettingsView: React.FC = () => {
                       <div
                         className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                         style={{
-                          backgroundColor: isCurrent ? m.color : `${m.color}1E`,
+                          backgroundColor: isCurrent ? m.color : `${m.color}20`,
                           color: isCurrent ? '#ffffff' : m.color,
                         }}
                       >
@@ -573,7 +567,7 @@ export const SettingsView: React.FC = () => {
                       key={t}
                       type="button"
                       onClick={() => setCatTab(t)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
                         catTab === t
                           ? 'bg-white dark:bg-[#1a2335] text-slate-900 dark:text-white shadow-xs'
                           : 'text-slate-500 dark:text-slate-400'
@@ -601,7 +595,7 @@ export const SettingsView: React.FC = () => {
             {showCatForm && (
               <form
                 onSubmit={handleCreateCategory}
-                className="mb-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 space-y-2.5"
+                className="mb-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0b1019] border border-slate-200/70 dark:border-white/[0.07] space-y-2.5"
               >
                 <div className="flex gap-2">
                   <input
@@ -609,12 +603,12 @@ export const SettingsView: React.FC = () => {
                     placeholder="Tên danh mục (vd: Thể thao)"
                     value={catName}
                     onChange={(e) => setCatName(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-emerald-500"
+                    className="flex-1 px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#141b29] border border-slate-200 dark:border-white/[0.08] focus:outline-none focus:border-emerald-500"
                   />
                   <select
                     value={catType}
                     onChange={(e) => setCatType(e.target.value as TransactionType)}
-                    className="px-2.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
+                    className="px-2.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-[#141b29] border border-slate-200 dark:border-white/[0.08]"
                   >
                     <option value="expense">Chi tiêu</option>
                     <option value="income">Thu nhập</option>
@@ -630,7 +624,7 @@ export const SettingsView: React.FC = () => {
                       className={`p-1.5 rounded-xl border cursor-pointer ${
                         catIcon === ic
                           ? 'bg-emerald-500 text-white border-emerald-500'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                          : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300'
                       }`}
                     >
                       <DynamicIcon name={ic} size={14} />
@@ -726,14 +720,14 @@ export const SettingsView: React.FC = () => {
                     </div>
 
                     {isEditingBudget && (
-                      <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center gap-1.5">
+                      <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-white/[0.07] flex items-center gap-1.5">
                         <input
                           type="text"
                           inputMode="numeric"
                           placeholder="VD: 3.000.000"
                           value={catBudgetDraft}
                           onChange={(e) => setCatBudgetDraft(formatRawAmount(e.target.value))}
-                          className="flex-1 min-w-0 px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-emerald-500"
+                          className="flex-1 min-w-0 px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums bg-white dark:bg-[#0b1019] border border-slate-200 dark:border-white/[0.08] focus:outline-none focus:border-emerald-500"
                         />
                         <button
                           type="button"
@@ -757,4 +751,4 @@ export const SettingsView: React.FC = () => {
       </div>
     </div>
   );
-};
+});

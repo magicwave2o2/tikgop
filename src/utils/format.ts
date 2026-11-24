@@ -240,10 +240,13 @@ export function getMonthCalendarGrid(year: number, month: number): Array<{
   return cells;
 }
 
+// Cached singleton formatter: avoids ~100x slower per-call Intl construction on iOS JavaScriptCore
+const VI_INT_FORMATTER = new Intl.NumberFormat('vi-VN');
+
 export function formatVND(amount: number, opts?: { showUnit?: boolean; signed?: boolean }): string {
   const showUnit = opts?.showUnit ?? true;
   const absVal = Math.round(Math.abs(amount));
-  const formatted = new Intl.NumberFormat('vi-VN').format(absVal);
+  const formatted = VI_INT_FORMATTER.format(absVal);
   const sign = opts?.signed ? (amount > 0 ? '+' : amount < 0 ? '-' : '') : amount < 0 ? '-' : '';
   return showUnit ? `${sign}${formatted} ₫` : `${sign}${formatted}`;
 }
@@ -268,7 +271,7 @@ export function formatCompactVND(amount: number): string {
 export function formatRawAmount(digits: string): string {
   const cleaned = digits.replace(/\D/g, '');
   if (!cleaned) return '';
-  return new Intl.NumberFormat('vi-VN').format(Number(cleaned));
+  return VI_INT_FORMATTER.format(Number(cleaned));
 }
 
 export function parseRawAmount(formatted: string): number {

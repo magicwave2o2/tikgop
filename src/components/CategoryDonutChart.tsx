@@ -73,7 +73,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
             fill="none"
             stroke="currentColor"
             strokeWidth={strokeWidth}
-            className="text-slate-100 dark:text-slate-800"
+            className="text-slate-100 dark:text-white/[0.07]"
           />
 
           {totalAmount > 0 &&
@@ -168,13 +168,13 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
                 transition={{ duration: 0.16 }}
                 className="flex flex-col items-center"
               >
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   {centerLabel}
                 </span>
                 <span className="text-lg font-extrabold text-slate-900 dark:text-white tabular-nums mt-0.5">
                   {totalAmount > 0 ? formatCompactVND(totalAmount) : '0 ₫'}
                 </span>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                <span className="text-[11px] text-slate-400 mt-0.5">
                   {items.length > 0 ? `${items.length} danh mục` : 'Chưa có dữ liệu'}
                 </span>
               </motion.div>
@@ -195,10 +195,10 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
                 onClick={() =>
                   setActiveId((prev) => (prev === slice.category.id ? null : slice.category.id))
                 }
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border cursor-pointer ${
                   isSelected
-                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-sm'
-                    : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700/70 hover:border-slate-300'
+                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-emerald-500/20 dark:text-emerald-200 dark:border-emerald-400/45 shadow-sm'
+                    : 'bg-slate-50 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/15'
                 }`}
                 title={`${slice.category.name}: ${formatVND(slice.amount)}`}
               >

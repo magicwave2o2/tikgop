@@ -183,7 +183,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           Lịch sử
         </h2>
 
-        <div className="inline-grid grid-cols-2 p-1 rounded-2xl bg-white dark:bg-[#121721] border border-slate-200/70 dark:border-slate-800 shadow-xs">
+        <div className="inline-grid grid-cols-2 p-1 rounded-2xl bg-white dark:bg-[#0b1019] border border-slate-200/70 dark:border-white/[0.08] shadow-xs">
           {(
             [
               { id: 'calendar', label: 'Lịch', icon: CalendarIcon },
@@ -235,7 +235,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     type="button"
                     whileTap={{ scale: 0.9 }}
                     onClick={() => shiftMonth(-1)}
-                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors cursor-pointer"
                     aria-label="Tháng trước"
                   >
                     <ChevronLeft size={16} />
@@ -247,7 +247,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     type="button"
                     whileTap={{ scale: 0.9 }}
                     onClick={() => shiftMonth(1)}
-                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors cursor-pointer"
                     aria-label="Tháng sau"
                   >
                     <ChevronRight size={16} />
@@ -255,9 +255,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-[11px] font-bold tabular-nums">
-                    <span className="text-rose-500">-{formatCompactVND(monthTotals.expense)}</span>
-                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                  <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-[#0b1019] dark:border dark:border-white/[0.06] text-[11px] font-bold tabular-nums">
+                    <span className="text-rose-500 dark:text-rose-400">-{formatCompactVND(monthTotals.expense)}</span>
+                    <span className="text-slate-300 dark:text-white/15">|</span>
                     <span className="text-emerald-600 dark:text-emerald-400">
                       +{formatCompactVND(monthTotals.income)}
                     </span>
@@ -316,16 +316,16 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     : 0;
 
                   const cellSurface = isSelected
-                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/30'
+                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/25'
                     : cell.isToday
-                      ? 'bg-emerald-500/12 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                      ? 'bg-emerald-500/12 dark:bg-emerald-500/16 border-emerald-500/40 dark:border-emerald-400/45 text-emerald-700 dark:text-emerald-300'
                       : !cell.inMonth
-                        ? 'bg-transparent border-transparent text-slate-300 dark:text-slate-700'
+                        ? 'bg-transparent border-transparent text-slate-300 dark:text-slate-600'
                         : intensity > 0.65
-                          ? 'bg-rose-500/10 border-rose-500/15 text-slate-900 dark:text-white'
+                          ? 'bg-rose-500/10 dark:bg-rose-500/16 border-rose-500/15 dark:border-rose-400/25 text-slate-900 dark:text-white'
                           : intensity > 0
-                            ? 'bg-amber-500/8 border-transparent text-slate-800 dark:text-slate-100'
-                            : 'bg-slate-50/70 dark:bg-slate-800/40 border-transparent hover:border-slate-200 dark:hover:border-slate-700 text-slate-800 dark:text-slate-200';
+                            ? 'bg-amber-500/8 dark:bg-amber-400/12 border-transparent dark:border-amber-400/15 text-slate-800 dark:text-slate-100'
+                            : 'bg-slate-50/70 dark:bg-white/[0.025] border-transparent dark:border-white/[0.04] hover:border-slate-200 dark:hover:bg-white/[0.06] text-slate-800 dark:text-slate-200';
 
                   return (
                     <motion.button
@@ -390,7 +390,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
             {/* Selected Day Detail Panel */}
             <section className="lg:col-span-5 card-surface rounded-3xl p-4 sm:p-5 flex flex-col">
-              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-white/[0.07]">
                 <div className="min-w-0">
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate">
                     {selectedHeader.title}
@@ -402,7 +402,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                   type="button"
                   whileTap={{ scale: 0.94 }}
                   onClick={() => onQuickAddForDate(selectedDateKey)}
-                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-sm shadow-emerald-500/25 hover:bg-emerald-600 transition-colors cursor-pointer"
+                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500 text-white dark:text-slate-950 text-xs font-bold shadow-sm shadow-emerald-500/25 hover:bg-emerald-600 dark:hover:bg-emerald-400 transition-colors cursor-pointer"
                 >
                   <Plus size={14} />
                   <span>Ghi ngày này</span>
@@ -411,13 +411,13 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
               {/* Compact inline Chi / Thu bar */}
               <div className="grid grid-cols-2 gap-2 my-3">
-                <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between gap-1">
+                <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0b1019] dark:border dark:border-white/[0.06] flex items-center justify-between gap-1">
                   <span className="text-[11px] font-semibold text-slate-400">Chi</span>
                   <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white tabular-nums truncate">
                     {formatVND(selectedDayTotals.expense)}
                   </span>
                 </div>
-                <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between gap-1">
+                <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0b1019] dark:border dark:border-white/[0.06] flex items-center justify-between gap-1">
                   <span className="text-[11px] font-semibold text-slate-400">Thu</span>
                   <span className="text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums truncate">
                     +{formatVND(selectedDayTotals.income)}
@@ -429,7 +429,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               <div className="flex-1">
                 {selectedDayTxs.length === 0 ? (
                   <div className="py-8 text-center">
-                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-2">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-white/[0.05] text-slate-400 mx-auto flex items-center justify-center mb-2">
                       <CalendarIcon size={18} />
                     </div>
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -437,7 +437,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <div className="-mx-2 divide-y divide-slate-100 dark:divide-slate-800/70">
+                  <div className="-mx-2 divide-y divide-slate-100 dark:divide-white/[0.06]">
                     {selectedDayTxs.map((tx) => (
                       <TransactionRow
                         key={tx.id}
@@ -463,7 +463,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             className="space-y-3.5"
           >
             {/* Streamlined Compact Search + Collapsible Filter Bar */}
-            <section className="card-surface rounded-3xl p-3.5 space-y-2.5">
+            <section className="card-surface rounded-3xl p-3.5 space-y-2.5 min-w-0 overflow-hidden">
               {/* Row 1: Search Input + Collapsible Filter Toggle */}
               <div className="flex items-center gap-2">
                 <div className="relative flex-1 flex items-center">
@@ -473,13 +473,13 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Tìm ghi chú, danh mục, người..."
-                    className="w-full pl-9 pr-8 py-2 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500"
+                    className="w-full pl-9 pr-8 py-2 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-[#0b1019] border border-slate-200/70 dark:border-white/[0.08] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400/70"
                   />
                   {query && (
                     <button
                       type="button"
                       onClick={() => setQuery('')}
-                      className="absolute right-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      className="absolute right-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                     >
                       <X size={14} />
                     </button>
@@ -491,14 +491,14 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                   onClick={() => setFiltersOpen((v) => !v)}
                   className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
                     filtersOpen || extraFilterCount > 0
-                      ? 'bg-emerald-500/12 border-emerald-500/35 text-emerald-700 dark:text-emerald-300'
-                      : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                      ? 'bg-emerald-500/12 dark:bg-emerald-500/15 border-emerald-500/35 dark:border-emerald-400/35 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-slate-50 dark:bg-[#0b1019] border-slate-200/70 dark:border-white/[0.08] text-slate-600 dark:text-slate-300'
                   }`}
                 >
                   <SlidersHorizontal size={14} />
                   <span>Lọc</span>
                   {extraFilterCount > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold inline-flex items-center justify-center">
+                    <span className="w-4 h-4 rounded-full bg-emerald-500 text-white dark:text-slate-950 text-[10px] font-extrabold inline-flex items-center justify-center">
                       {extraFilterCount}
                     </span>
                   )}
@@ -507,7 +507,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
               {/* Row 2: Type Segmented Pills + Live Filtered Totals */}
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="inline-flex items-center gap-0.5 p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800/80">
+                <div className="inline-flex items-center gap-0.5 p-0.5 rounded-xl bg-slate-100 dark:bg-[#0b1019] dark:border dark:border-white/[0.06]">
                   {(
                     [
                       { id: 'all', label: 'Tất cả' },
@@ -521,7 +521,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                       onClick={() => setTypeFilter(opt.id)}
                       className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                         typeFilter === opt.id
-                          ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                          ? 'bg-white dark:bg-[#1a2335] text-slate-900 dark:text-white shadow-xs'
                           : 'text-slate-500 dark:text-slate-400'
                       }`}
                     >
@@ -581,7 +581,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     transition={{ duration: 0.18 }}
                     className="overflow-hidden"
                   >
-                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                    <div className="pt-2.5 border-t border-slate-100 dark:border-white/[0.07] space-y-2.5">
                       {/* Scrollable Category Strip */}
                       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
                         <button
@@ -589,8 +589,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                           onClick={() => setCategoryFilter('all')}
                           className={`shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                             categoryFilter === 'all'
-                              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent'
-                              : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
+                              ? 'bg-slate-900 dark:bg-emerald-500/20 text-white dark:text-emerald-200 border-transparent dark:border-emerald-400/40'
+                              : 'bg-slate-50 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-white/[0.08]'
                           }`}
                         >
                           Mọi mục
@@ -605,7 +605,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                               className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer ${
                                 active
                                   ? 'text-white border-transparent shadow-xs'
-                                  : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
+                                  : 'bg-slate-50 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-white/[0.08]'
                               }`}
                               style={active ? { backgroundColor: cat.color } : undefined}
                             >
@@ -628,7 +628,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                           className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
                             memberFilter === 'all'
                               ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                              : 'text-slate-400 hover:text-slate-600'
+                              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                           }`}
                         >
                           Cả nhà
@@ -641,7 +641,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
                               memberFilter === m.id
                                 ? 'text-white'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                : 'bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-slate-300'
                             }`}
                             style={memberFilter === m.id ? { backgroundColor: m.color } : undefined}
                           >
@@ -685,7 +685,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               <div className="space-y-3">
                 {groupedList.slice(0, visibleGroupsCount).map((group) => (
                   <section key={group.dateKey} className="card-surface rounded-3xl p-3.5 sm:p-4">
-                    <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 dark:border-slate-800/80">
+                    <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 dark:border-white/[0.07]">
                       <div className="flex items-baseline gap-2">
                         <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">
                           {group.title}
@@ -709,7 +709,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="-mx-2 divide-y divide-slate-100 dark:divide-slate-800/70">
+                    <div className="-mx-2 divide-y divide-slate-100 dark:divide-white/[0.06]">
                       {group.items.map((tx) => (
                         <TransactionRow
                           key={tx.id}

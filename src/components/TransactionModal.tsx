@@ -432,7 +432,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/55 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-950/60 dark:bg-black/70 backdrop-blur-md"
           />
 
           <motion.div
@@ -440,16 +440,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0.85 }}
             transition={{ type: 'spring', stiffness: 360, damping: 32 }}
-            className="relative z-10 w-full sm:max-w-lg max-h-[94dvh] flex flex-col bg-white dark:bg-[#141923] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl border border-slate-200/60 dark:border-slate-800 overflow-hidden"
+            className="relative z-10 w-full sm:max-w-lg max-h-[94dvh] flex flex-col modal-surface rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden"
           >
             {/* Mobile drag handle */}
             <div className="flex justify-center pt-2 pb-0.5 sm:hidden">
-              <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+              <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-white/15" />
             </div>
 
             {/* Compact Top Header */}
-            <div className="flex items-center justify-between px-3.5 sm:px-5 pt-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800/80 gap-1.5">
-              <div className="grid grid-cols-2 p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 shrink-0">
+            <div className="flex items-center justify-between px-3.5 sm:px-5 pt-2.5 pb-2.5 border-b border-slate-100 dark:border-white/[0.07] gap-1.5">
+              <div className="grid grid-cols-2 p-0.5 rounded-xl bg-slate-100 dark:bg-[#0b1019] dark:border dark:border-white/[0.06] shrink-0">
                 {(
                   [
                     { id: 'expense', label: 'Chi tiêu', icon: ArrowUpRight },
@@ -475,7 +475,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         <motion.div
                           layoutId="txTypePill"
                           transition={{ type: 'spring', stiffness: 440, damping: 32 }}
-                          className="absolute inset-0 rounded-[10px] bg-white dark:bg-slate-900 shadow-xs -z-10"
+                          className="absolute inset-0 rounded-[10px] bg-white dark:bg-[#1a2335] shadow-xs -z-10"
                         />
                       )}
                       <Icon size={13} className="shrink-0" />
@@ -571,7 +571,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               )}
 
               {/* UNIFIED TOP HERO CARD: Số tiền (with Calc + Smart Multipliers) + Ghi chú nhanh */}
-              <div className="rounded-3xl p-3.5 bg-slate-50 dark:bg-slate-900/75 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+              <div className="rounded-3xl p-3.5 bg-slate-50 dark:bg-[#0b1019] border border-slate-200/80 dark:border-white/[0.08] space-y-2.5">
                 {/* 1. Số tiền + Inline Calculator */}
                 <div>
                   <div className="flex items-center justify-between mb-0.5">
@@ -723,7 +723,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </div>
 
                 {/* 2. Ghi chú nhanh (Smart auto-category + auto-price extraction!) */}
-                <div className="pt-2.5 border-t border-slate-200/70 dark:border-slate-800">
+                <div className="pt-2.5 border-t border-slate-200/70 dark:border-white/[0.07]">
                   <div className="relative flex items-center">
                     <FileText
                       size={15}
@@ -735,7 +735,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       placeholder="Ghi chú nhanh..."
                       value={note}
                       onChange={(e) => handleNoteChange(e.target.value)}
-                      className="w-full pl-9 pr-8 py-2 rounded-2xl text-sm font-medium bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-emerald-500"
+                      className="w-full pl-9 pr-8 py-2 rounded-2xl text-sm font-medium bg-white dark:bg-[#141b29] border border-slate-200/80 dark:border-white/[0.08] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400/70"
                     />
                     {note && (
                       <button
@@ -856,8 +856,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         }}
                         className={`flex flex-col items-center justify-center gap-1 py-2 px-1.5 rounded-2xl border transition-all cursor-pointer ${
                           active
-                            ? 'bg-slate-900/5 dark:bg-white/10 border-emerald-500/70 ring-2 ring-emerald-500/20'
-                            : 'bg-white dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
+                            ? 'bg-emerald-500/8 dark:bg-emerald-500/14 border-emerald-500/70 dark:border-emerald-400/60 ring-2 ring-emerald-500/20'
+                            : 'bg-white dark:bg-white/[0.03] border-slate-100 dark:border-white/[0.06] hover:border-slate-200 dark:hover:border-white/12'
                         }`}
                       >
                         <CategoryIconBadge
@@ -882,7 +882,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
 
               {/* Compact Quick Metadata Strip */}
-              <div className="rounded-2xl bg-slate-50/90 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 p-2.5 space-y-2.5">
+              <div className="rounded-2xl bg-slate-50/90 dark:bg-[#0b1019] border border-slate-200/60 dark:border-white/[0.07] p-2.5 space-y-2.5">
                 <div className="flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                     <button
@@ -1038,7 +1038,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </form>
 
             {/* Pinned Sticky Save Footer with "Lưu & tiếp" + Smart <1000₫ typo safeguard */}
-            <div className="px-4 sm:px-5 pt-2.5 pb-safe bg-white/95 dark:bg-[#141923]/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+            <div className="px-4 sm:px-5 pt-2.5 pb-safe bg-white/95 dark:bg-[#0e131e]/95 backdrop-blur-md border-t border-slate-100 dark:border-white/[0.07] space-y-2">
               {numericPreview > 0 && numericPreview < 1_000 && (
                 <button
                   type="button"

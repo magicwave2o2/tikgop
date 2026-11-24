@@ -140,19 +140,19 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* UNIFIED LUMINOUS HERO CARD: Inline Timeframe + Totals + Budget + Rollup Ribbon */}
+      {/* UNIFIED LUMINOUS HERO CARD: Vibrant Emerald in Light, Deep Obsidian-Emerald Jewel in Dark */}
       <motion.section
         layout
-        className="relative overflow-hidden rounded-[2rem] p-4 sm:p-6 text-white bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 shadow-xl shadow-emerald-600/20"
+        className="relative overflow-hidden rounded-[2rem] p-4 sm:p-6 text-white bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 dark:from-[#0a2720] dark:via-[#0d1f26] dark:to-[#0c1420] dark:border dark:border-emerald-400/20 shadow-xl shadow-emerald-600/20 dark:shadow-[inset_0_1px_0_rgba(52,211,153,0.22),0_20px_48px_-14px_rgba(0,0,0,0.85)]"
       >
         {/* Subtle ambient mesh */}
-        <div className="pointer-events-none absolute -top-20 -right-14 w-56 h-56 rounded-full bg-white/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-16 w-60 h-60 rounded-full bg-teal-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -top-20 -right-14 w-56 h-56 rounded-full bg-white/15 dark:bg-emerald-400/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-16 w-60 h-60 rounded-full bg-teal-300/20 dark:bg-teal-400/15 blur-3xl" />
 
         <div className="relative z-10 space-y-4">
           {/* Top Integrated Controls: Timeframe Pills + Period Stepper */}
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="inline-flex p-0.5 rounded-xl bg-black/15 backdrop-blur-md">
+            <div className="inline-flex p-0.5 rounded-xl bg-black/15 dark:bg-black/35 dark:ring-1 dark:ring-white/[0.08] backdrop-blur-md">
               {TIMEFRAMES.map((tf) => {
                 const active = timeframe === tf.id;
                 return (
@@ -164,14 +164,16 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                       setAnchorDate(getToday());
                     }}
                     className={`relative px-2.5 sm:px-3 py-1.5 rounded-[10px] text-[11px] font-extrabold transition-colors z-10 cursor-pointer ${
-                      active ? 'text-emerald-700' : 'text-white/80 hover:text-white'
+                      active
+                        ? 'text-emerald-700 dark:text-emerald-200'
+                        : 'text-white/80 dark:text-slate-300/80 hover:text-white'
                     }`}
                   >
                     {active && (
                       <motion.div
                         layoutId="heroTimeframePill"
                         transition={{ type: 'spring', stiffness: 440, damping: 32 }}
-                        className="absolute inset-0 rounded-[10px] bg-white shadow-xs -z-10"
+                        className="absolute inset-0 rounded-[10px] bg-white dark:bg-emerald-400/20 dark:ring-1 dark:ring-emerald-300/40 shadow-xs -z-10"
                       />
                     )}
                     {tf.label}
@@ -185,14 +187,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setAnchorDate(getToday())}
-                  className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl bg-white/15 dark:bg-white/[0.08] hover:bg-white/25 transition-colors cursor-pointer"
                   aria-label="Về hiện tại"
                   title="Về hiện tại"
                 >
                   <RotateCcw size={13} />
                 </button>
               )}
-              <div className="inline-flex items-center gap-0.5 bg-black/15 backdrop-blur-md rounded-xl p-0.5">
+              <div className="inline-flex items-center gap-0.5 bg-black/15 dark:bg-black/35 dark:ring-1 dark:ring-white/[0.08] backdrop-blur-md rounded-xl p-0.5">
                 <button
                   type="button"
                   onClick={() => setAnchorDate((d) => shiftAnchorDate(timeframe, d, -1))}
@@ -220,14 +222,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           <div>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-emerald-50/85">
+                <span className="text-xs font-semibold text-emerald-50/85 dark:text-emerald-200/75">
                   {viewingMemberObj ? `Chi tiêu của ${viewingMemberObj.name}` : 'Tổng chi gia đình'}
                 </span>
                 {viewingMemberObj && (
                   <button
                     type="button"
                     onClick={() => setViewScope('all')}
-                    className="px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 text-[10px] font-bold cursor-pointer"
+                    className="px-2 py-0.5 rounded-full bg-white/20 dark:bg-emerald-400/20 hover:bg-white/30 text-[10px] font-bold cursor-pointer"
                   >
                     Cả nhà
                   </button>
@@ -238,8 +240,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold backdrop-blur-md ${
                     summary.expenseDeltaPct <= 0
-                      ? 'bg-white/20 text-emerald-50'
-                      : 'bg-rose-500/40 text-rose-50'
+                      ? 'bg-white/20 dark:bg-emerald-400/20 text-emerald-50 dark:text-emerald-200'
+                      : 'bg-rose-500/40 dark:bg-rose-500/30 text-rose-50 dark:text-rose-200'
                   }`}
                 >
                   {summary.expenseDeltaPct <= 0 ? (
@@ -255,16 +257,19 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               )}
             </div>
 
-            <div className="mt-1 text-3xl sm:text-[40px] font-extrabold tracking-tight leading-none">
+            <div className="mt-1 text-3xl sm:text-[40px] font-extrabold tracking-tight leading-none text-white">
               <AnimatedCurrency value={summary.totalExpense} />
             </div>
 
             {/* Sleek single-line inline KPIs */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-emerald-50/90 tabular-nums">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-emerald-50/90 dark:text-slate-300 tabular-nums">
               <span>
-                Thu <strong className="text-white">{formatCompactVND(summary.totalIncome)}</strong>
+                Thu{' '}
+                <strong className="text-white dark:text-emerald-300">
+                  {formatCompactVND(summary.totalIncome)}
+                </strong>
               </span>
-              <span className="opacity-40">•</span>
+              <span className="opacity-35">•</span>
               <span>
                 Dư{' '}
                 <strong className="text-white">
@@ -272,7 +277,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   {formatCompactVND(summary.netBalance)}
                 </strong>
               </span>
-              <span className="opacity-40">•</span>
+              <span className="opacity-35">•</span>
               <span>
                 TB/ngày <strong className="text-white">{formatCompactVND(summary.dailyAverage)}</strong>
               </span>
@@ -281,14 +286,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             {/* Thin Luminous Budget Progress */}
             {viewScope === 'all' && periodBudget > 0 && (
               <div className="mt-3">
-                <div className="flex items-center justify-between text-[11px] text-emerald-50/85 mb-1 tabular-nums">
+                <div className="flex items-center justify-between text-[11px] text-emerald-50/85 dark:text-slate-300/85 mb-1 tabular-nums">
                   <span>Hạn mức {range.shortLabel}</span>
                   <span className="font-bold text-white">
                     {Math.round((summary.totalExpense / periodBudget) * 100)}% •{' '}
                     {formatCompactVND(periodBudget)}
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full bg-black/20 overflow-hidden">
+                <div className="h-1.5 rounded-full bg-black/20 dark:bg-white/10 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${budgetPct}%` }}
@@ -298,7 +303,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                         ? 'bg-gradient-to-r from-amber-300 to-rose-400'
                         : budgetPct > 80
                           ? 'bg-amber-300'
-                          : 'bg-white'
+                          : 'bg-white dark:bg-gradient-to-r dark:from-emerald-400 dark:to-teal-300'
                     }`}
                   />
                 </div>
@@ -307,7 +312,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           </div>
 
           {/* Integrated Glass Rollup Ribbon: Hôm nay | Tuần này | Tháng này */}
-          <div className="grid grid-cols-3 divide-x divide-white/15 rounded-2xl bg-black/15 backdrop-blur-md border border-white/10 overflow-hidden">
+          <div className="grid grid-cols-3 divide-x divide-white/15 dark:divide-white/[0.08] rounded-2xl bg-black/15 dark:bg-white/[0.04] backdrop-blur-md border border-white/10 dark:border-white/[0.08] overflow-hidden">
             {(
               [
                 { id: 'day' as Timeframe, label: 'Hôm nay', val: quickRollups.todayExpense },
@@ -325,10 +330,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                     setAnchorDate(getToday());
                   }}
                   className={`py-2.5 px-2 text-center transition-colors cursor-pointer ${
-                    isCurrent ? 'bg-white/16' : 'hover:bg-white/8'
+                    isCurrent
+                      ? 'bg-white/16 dark:bg-emerald-400/15'
+                      : 'hover:bg-white/8 dark:hover:bg-white/[0.04]'
                   }`}
                 >
-                  <div className="text-[10px] font-semibold text-emerald-50/80">{r.label}</div>
+                  <div className="text-[10px] font-semibold text-emerald-50/80 dark:text-slate-300/80">
+                    {r.label}
+                  </div>
                   <div className="text-xs sm:text-sm font-extrabold text-white tabular-nums mt-0.5 truncate">
                     {formatCompactVND(r.val)}
                   </div>
@@ -345,7 +354,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           type="button"
           whileTap={{ scale: 0.96 }}
           onClick={onOpenReceiptScan}
-          className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/18 text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/12 border border-transparent dark:border-emerald-400/20 hover:bg-emerald-500/18 text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
         >
           <ScanLine size={17} strokeWidth={2.3} />
           <span className="text-xs font-extrabold whitespace-nowrap">Quét bill</span>
@@ -355,11 +364,11 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           type="button"
           whileTap={{ scale: 0.96 }}
           onClick={onOpenVoiceInput}
-          className="relative flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-violet-500/10 hover:bg-violet-500/18 text-violet-700 dark:text-violet-300 transition-colors cursor-pointer"
+          className="relative flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-violet-500/10 dark:bg-violet-500/12 border border-transparent dark:border-violet-400/20 hover:bg-violet-500/18 text-violet-700 dark:text-violet-300 transition-colors cursor-pointer"
         >
           <span className="relative flex items-center justify-center">
             <Mic size={17} strokeWidth={2.3} />
-            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
           </span>
           <span className="text-xs font-extrabold whitespace-nowrap">Giọng nói</span>
         </motion.button>
@@ -368,7 +377,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           type="button"
           whileTap={{ scale: 0.96 }}
           onClick={onQuickAdd}
-          className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/18 text-sky-700 dark:text-sky-300 transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl bg-sky-500/10 dark:bg-sky-500/12 border border-transparent dark:border-sky-400/20 hover:bg-sky-500/18 text-sky-700 dark:text-sky-300 transition-colors cursor-pointer"
         >
           <Plus size={17} strokeWidth={2.5} />
           <span className="text-xs font-extrabold whitespace-nowrap">Ghi tay</span>
@@ -394,8 +403,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 }
                 className={`flex flex-col items-center py-2 px-1 rounded-2xl transition-all cursor-pointer ${
                   isFiltered
-                    ? 'bg-emerald-500/10 ring-2 ring-emerald-500/60'
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    ? 'bg-emerald-500/10 dark:bg-emerald-500/14 ring-2 ring-emerald-500/60 dark:ring-emerald-400/60'
+                    : 'hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                 }`}
               >
                 {/* Avatar with Creative Circular Spending Progress Ring */}
@@ -408,7 +417,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="3"
-                      className="text-slate-100 dark:text-slate-800"
+                      className="text-slate-100 dark:text-white/[0.08]"
                     />
                     {item.percentage > 0 && (
                       <motion.circle
@@ -426,9 +435,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                     )}
                   </svg>
                   <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center transition-transform"
+                    className="w-9 h-9 rounded-full flex items-center justify-center transition-transform dark:brightness-115"
                     style={{
-                      backgroundColor: isFiltered ? item.member.color : `${item.member.color}1C`,
+                      backgroundColor: isFiltered ? item.member.color : `${item.member.color}22`,
                       color: isFiltered ? '#ffffff' : item.member.color,
                     }}
                   >
@@ -439,7 +448,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 <span className="mt-1.5 text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-full">
                   {item.member.name}
                 </span>
-                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 tabular-nums">
+                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-300 tabular-nums">
                   {formatCompactVND(item.amount)}
                 </span>
               </motion.button>
@@ -468,7 +477,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
           {categoryBreakdown.length === 0 ? (
             <div className="py-7 text-center">
-              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-white/[0.06] text-slate-400 mx-auto flex items-center justify-center mb-2">
                 <Sparkles size={18} />
               </div>
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">
@@ -477,7 +486,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <button
                 type="button"
                 onClick={onQuickAdd}
-                className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-sm shadow-emerald-500/25 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-emerald-500 text-white dark:text-slate-950 text-xs font-bold shadow-sm shadow-emerald-500/25 cursor-pointer"
               >
                 + Ghi khoản đầu tiên
               </button>
@@ -485,14 +494,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           ) : (
             <div className="space-y-3.5">
               {/* Stacked Proportional Color Ribbon */}
-              <div className="h-3 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex gap-0.5 p-0.5">
+              <div className="h-3 w-full rounded-full bg-slate-100 dark:bg-[#0b1019] dark:ring-1 dark:ring-white/[0.06] overflow-hidden flex gap-0.5 p-0.5">
                 {categoryBreakdown.slice(0, 7).map((item) => (
                   <motion.div
                     key={item.category.id}
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.max(4, item.percentage)}%` }}
                     transition={{ type: 'spring', stiffness: 150, damping: 24 }}
-                    className="h-full rounded-full"
+                    className="h-full rounded-full dark:brightness-110"
                     style={{ backgroundColor: item.category.color }}
                     title={`${item.category.name}: ${formatVND(item.amount)} (${Math.round(item.percentage)}%)`}
                   />
@@ -507,7 +516,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                     type="button"
                     whileTap={{ scale: 0.985 }}
                     onClick={() => onNavigateTab('history', item.category.id)}
-                    className="w-full flex items-center gap-3 p-2 -mx-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-3 p-2 -mx-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
                   >
                     <CategoryIconBadge
                       icon={item.category.icon}
@@ -529,7 +538,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                         {formatVND(item.amount)}
                       </span>
                       <span
-                        className="text-[10px] font-extrabold tabular-nums w-8 text-right"
+                        className="text-[10px] font-extrabold tabular-nums w-8 text-right dark:brightness-125"
                         style={{ color: item.category.color }}
                       >
                         {Math.round(item.percentage)}%
@@ -563,7 +572,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               Chưa có giao dịch nào được ghi nhận.
             </p>
           ) : (
-            <div className="-mx-2 divide-y divide-slate-100 dark:divide-slate-800/70">
+            <div className="-mx-2 divide-y divide-slate-100 dark:divide-white/[0.06]">
               {recentTxs.map((tx) => (
                 <TransactionRow
                   key={tx.id}

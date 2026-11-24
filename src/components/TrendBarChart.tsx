@@ -45,7 +45,7 @@ export const TrendBarChart: React.FC<TrendBarChartProps> = ({
     <div className="w-full">
       {/* Interactive selected bucket readout */}
       {selected && (
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4 px-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4 px-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-[#0b1019] border border-slate-200/60 dark:border-white/[0.07]">
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-slate-900 dark:text-white">
@@ -93,10 +93,10 @@ export const TrendBarChart: React.FC<TrendBarChartProps> = ({
         {/* Dashed average reference line (only meaningful when >= 2 active buckets) */}
         {!showIncome && nonZeroExpenses.length >= 2 && avgExpense > 0 && (
           <div
-            className="absolute left-0 right-0 border-t border-dashed border-emerald-500/45 pointer-events-none z-10 flex justify-end"
+            className="absolute left-0 right-0 border-t border-dashed border-emerald-500/45 dark:border-emerald-400/35 pointer-events-none z-10 flex justify-end"
             style={{ bottom: `calc(${avgLinePct * 0.72}% + 28px)` }}
           >
-            <span className="-mt-4 px-1.5 py-0.5 rounded-md bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold tabular-nums backdrop-blur-sm">
+            <span className="-mt-4 px-1.5 py-0.5 rounded-md bg-emerald-500/12 dark:bg-[#101520]/90 dark:border dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold tabular-nums backdrop-blur-sm">
               TB {formatCompactVND(avgExpense)}
             </span>
           </div>
@@ -161,7 +161,7 @@ export const TrendBarChart: React.FC<TrendBarChartProps> = ({
                     showIncome ? 'w-2.5 sm:w-3.5' : 'w-full max-w-[34px]'
                   } rounded-t-xl transition-all ${
                     bucket.expense === 0
-                      ? 'bg-slate-200/70 dark:bg-slate-800'
+                      ? 'bg-slate-200/70 dark:bg-white/[0.06]'
                       : isSelected
                         ? showIncome
                           ? 'bg-rose-500 shadow-lg shadow-rose-500/30'
@@ -171,8 +171,8 @@ export const TrendBarChart: React.FC<TrendBarChartProps> = ({
                             ? 'bg-rose-400/80'
                             : 'bg-emerald-500/70'
                           : showIncome
-                            ? 'bg-rose-400/45 dark:bg-rose-500/40 group-hover:bg-rose-400/75'
-                            : 'bg-slate-200 dark:bg-slate-700/80 group-hover:bg-emerald-400/60'
+                            ? 'bg-rose-400/45 dark:bg-rose-500/45 group-hover:bg-rose-400/75'
+                            : 'bg-slate-200 dark:bg-slate-700/80 group-hover:bg-emerald-400/65'
                   }`}
                 />
               </div>

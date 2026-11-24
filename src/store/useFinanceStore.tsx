@@ -215,7 +215,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
-      metaTheme.setAttribute('content', resolvedTheme === 'dark' ? '#0b0e14' : '#10b981');
+      metaTheme.setAttribute('content', resolvedTheme === 'dark' ? '#070a10' : '#f5f7fb');
     }
   }, [resolvedTheme]);
 

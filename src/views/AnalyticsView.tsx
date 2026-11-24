@@ -162,7 +162,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           Phân tích
         </h2>
 
-        <div className="inline-grid grid-cols-3 p-1 rounded-2xl bg-white dark:bg-[#121721] border border-slate-200/70 dark:border-slate-800 shadow-xs">
+        <div className="inline-grid grid-cols-3 p-1 rounded-2xl bg-white dark:bg-[#0b1019] border border-slate-200/70 dark:border-white/[0.08] shadow-xs">
           {(
             [
               { id: 'day', label: 'Ngày' },
@@ -204,7 +204,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             type="button"
             whileTap={{ scale: 0.9 }}
             onClick={() => shiftPeriod(-1)}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-300 cursor-pointer"
             aria-label="Khoảng trước"
           >
             <ChevronLeft size={16} />
@@ -230,14 +230,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             type="button"
             whileTap={{ scale: 0.9 }}
             onClick={() => shiftPeriod(1)}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-300 cursor-pointer"
             aria-label="Khoảng sau"
           >
             <ChevronRight size={16} />
           </motion.button>
         </div>
 
-        <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 rounded-2xl bg-slate-50/90 dark:bg-slate-800/50 py-2.5">
+        <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-white/[0.07] rounded-2xl bg-slate-50/90 dark:bg-[#0b1019] dark:border dark:border-white/[0.06] py-2.5">
           <div className="px-2.5 text-center">
             <div className="text-[10px] font-bold text-rose-500 uppercase tracking-wide">Chi</div>
             <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white tabular-nums mt-0.5 truncate">
@@ -277,7 +277,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                 showIncome
                   ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                  : 'bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300'
               }`}
             >
               {showIncome ? 'Thu & Chi' : '+ So sánh Thu'}
@@ -301,8 +301,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   key={b.key}
                   className={`px-3 py-2.5 rounded-2xl border transition-colors ${
                     b.isCurrent
-                      ? 'bg-emerald-500/8 border-emerald-500/25'
-                      : 'bg-slate-50/80 dark:bg-slate-800/45 border-transparent'
+                      ? 'bg-emerald-500/8 dark:bg-emerald-500/12 border-emerald-500/25 dark:border-emerald-400/30'
+                      : 'bg-slate-50/80 dark:bg-white/[0.03] border-transparent dark:border-white/[0.04]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -392,7 +392,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               </h3>
             </div>
 
-            <div className="flex p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800">
+            <div className="flex p-0.5 rounded-xl bg-slate-100 dark:bg-[#0b1019] dark:border dark:border-white/[0.06]">
               {(['expense', 'income'] as const).map((t) => (
                 <button
                   key={t}
@@ -400,7 +400,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   onClick={() => setBreakdownType(t)}
                   className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                     breakdownType === t
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                      ? 'bg-white dark:bg-[#1a2335] text-slate-900 dark:text-white shadow-xs'
                       : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
@@ -441,7 +441,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       key={item.category.id}
                       type="button"
                       onClick={() => onSelectCategoryInHistory(item.category.id)}
-                      className="w-full text-left p-2.5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/45 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      className="w-full text-left p-2.5 rounded-2xl bg-slate-50/70 dark:bg-white/[0.03] border border-transparent dark:border-white/[0.05] hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
                         <CategoryIconBadge
@@ -521,7 +521,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             {memberBreakdown.map((m) => (
               <div
                 key={m.member.id}
-                className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/45 border border-slate-100/80 dark:border-slate-800"
+                className="p-3 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100/80 dark:border-white/[0.05]"
               >
                 <div className="flex items-center gap-2.5">
                   <div

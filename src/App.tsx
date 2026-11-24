@@ -167,12 +167,12 @@ const AppShell: React.FC = () => {
   return (
     <div className="min-h-dvh flex flex-col lg:flex-row">
       {/* Desktop Sidebar Navigation */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:left-0 bg-white dark:bg-[#121721] border-r border-slate-200/70 dark:border-slate-800/80 px-4 py-6 z-30">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:left-0 bg-white dark:bg-[#0c111b]/95 dark:backdrop-blur-xl border-r border-slate-200/70 dark:border-white/[0.07] px-4 py-6 z-30">
         <div className="flex items-center gap-3 px-2 mb-6">
           <img
             src="/logo.png"
             alt="TíchGóp"
-            className="w-10 h-10 rounded-2xl bg-white border border-slate-200/80 dark:border-slate-700 object-cover shadow-md shadow-emerald-500/15"
+            className="w-10 h-10 rounded-2xl bg-white border border-slate-200/80 dark:border-white/15 dark:ring-1 dark:ring-white/10 object-cover shadow-md shadow-emerald-500/15 dark:shadow-emerald-500/20"
           />
           <div className="min-w-0">
             <h1 className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">
@@ -190,7 +190,7 @@ const AppShell: React.FC = () => {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => openQuickAdd()}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-bold shadow-lg shadow-emerald-500/25 cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-500 dark:to-teal-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/25 dark:shadow-emerald-500/20 cursor-pointer"
           >
             <Plus size={19} strokeWidth={2.5} />
             <span>Ghi chi tiêu mới</span>
@@ -204,7 +204,7 @@ const AppShell: React.FC = () => {
               type="button"
               whileTap={{ scale: 0.96 }}
               onClick={() => setReceiptOpen(true)}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-xl bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-500/20 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-xl bg-emerald-500/12 border border-transparent dark:border-emerald-400/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-500/20 transition-colors cursor-pointer"
             >
               <ScanLine size={15} />
               <span>Quét bill</span>
@@ -214,7 +214,7 @@ const AppShell: React.FC = () => {
               type="button"
               whileTap={{ scale: 0.96 }}
               onClick={() => setVoiceOpen(true)}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-xl bg-violet-500/12 text-violet-700 dark:text-violet-300 text-xs font-bold hover:bg-violet-500/20 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-xl bg-violet-500/12 border border-transparent dark:border-violet-400/20 text-violet-700 dark:text-violet-300 text-xs font-bold hover:bg-violet-500/20 transition-colors cursor-pointer"
             >
               <Mic size={15} />
               <span>Giọng nói</span>
@@ -234,14 +234,14 @@ const AppShell: React.FC = () => {
                 className={`relative w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-bold transition-colors cursor-pointer ${
                   active
                     ? 'text-emerald-700 dark:text-emerald-300'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                 }`}
               >
                 {active && (
                   <motion.div
                     layoutId="desktopNavIndicator"
                     transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                    className="absolute inset-0 rounded-2xl bg-emerald-500/12 border border-emerald-500/20 -z-10"
+                    className="absolute inset-0 rounded-2xl bg-emerald-500/12 dark:bg-emerald-500/15 border border-emerald-500/20 dark:border-emerald-400/25 -z-10"
                   />
                 )}
                 <Icon size={19} strokeWidth={active ? 2.4 : 2} />
@@ -251,11 +251,11 @@ const AppShell: React.FC = () => {
           })}
         </nav>
 
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+        <div className="pt-4 border-t border-slate-100 dark:border-white/[0.06] space-y-2">
           <button
             type="button"
             onClick={() => handleNavigateTab('settings')}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-transparent dark:border-white/[0.06] hover:bg-slate-100 dark:hover:bg-white/[0.07] transition-colors cursor-pointer"
           >
             <div
               className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0"
@@ -275,7 +275,7 @@ const AppShell: React.FC = () => {
             <button
               type="button"
               onClick={() => void promptInstall()}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-slate-900 dark:bg-emerald-500 text-white dark:text-slate-950 text-xs font-bold cursor-pointer"
             >
               <Download size={14} />
               <span>Cài PWA lên máy</span>
@@ -284,24 +284,28 @@ const AppShell: React.FC = () => {
           <button
             type="button"
             onClick={toggleQuickTheme}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-transparent dark:border-white/[0.06] text-xs font-bold text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
           >
             <span>Chế độ {resolvedTheme === 'dark' ? 'tối' : 'sáng'}</span>
-            {resolvedTheme === 'dark' ? <Moon size={15} /> : <Sun size={15} />}
+            {resolvedTheme === 'dark' ? (
+              <Moon size={15} className="text-emerald-400" />
+            ) : (
+              <Sun size={15} className="text-amber-500" />
+            )}
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-dvh">
+      <div className="flex-1 min-w-0 lg:pl-64 flex flex-col min-h-dvh">
         {/* Mobile Top Sticky Header — Pure Minimalist */}
-        <header className="lg:hidden sticky top-0 z-20 pt-safe bg-[#f5f7fb]/85 dark:bg-[#090c12]/85 backdrop-blur-xl">
+        <header className="lg:hidden sticky top-0 z-20 pt-safe bg-[#f5f7fb]/85 dark:bg-[#070a10]/82 backdrop-blur-xl dark:border-b dark:border-white/[0.05]">
           <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <img
                 src="/logo.png"
                 alt="TíchGóp"
-                className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 dark:border-slate-700 object-cover shadow-xs shrink-0"
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 dark:border-white/15 object-cover shadow-xs shrink-0"
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -329,7 +333,7 @@ const AppShell: React.FC = () => {
                   type="button"
                   whileTap={{ scale: 0.92 }}
                   onClick={() => void promptInstall()}
-                  className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-sm shadow-emerald-500/25 cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-emerald-500 text-white dark:text-slate-950 text-xs font-bold shadow-sm shadow-emerald-500/25 cursor-pointer"
                   aria-label="Cài đặt PWA"
                 >
                   <Download size={14} />
@@ -341,7 +345,7 @@ const AppShell: React.FC = () => {
                 type="button"
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleQuickTheme}
-                className="p-2 rounded-xl bg-white dark:bg-[#121721] border border-slate-200/70 dark:border-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+                className="p-2 rounded-xl bg-white dark:bg-[#101520] border border-slate-200/70 dark:border-white/[0.09] text-slate-600 dark:text-amber-300 cursor-pointer"
                 aria-label="Đổi giao diện sáng tối"
               >
                 {resolvedTheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
@@ -449,7 +453,7 @@ const AppShell: React.FC = () => {
               whileTap={{ scale: 0.9 }}
               onClick={() => openQuickAdd()}
               aria-label="Thêm giao dịch mới"
-              className="-mt-6 w-13 h-13 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 ring-4 ring-[#f5f7fb] dark:ring-[#090c12] cursor-pointer"
+              className="-mt-6 w-13 h-13 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 dark:shadow-[0_10px_28px_-4px_rgba(16,185,129,0.5)] ring-4 ring-[#f5f7fb] dark:ring-[#070a10] cursor-pointer"
             >
               <Plus size={26} strokeWidth={2.6} />
             </motion.button>
@@ -525,7 +529,7 @@ const AppShell: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-            className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl text-xs font-bold max-w-[92vw]"
+            className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 dark:bg-[#161f30] text-white dark:text-slate-100 dark:border dark:border-white/12 shadow-2xl text-xs font-bold max-w-[92vw]"
           >
             <span>{toast.message}</span>
             {toast.deletedTx && (

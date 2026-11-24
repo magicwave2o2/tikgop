@@ -450,7 +450,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-950/60 dark:bg-black/70 backdrop-blur-md"
           />
 
           <motion.div
@@ -458,10 +458,10 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0.85 }}
             transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-            className="relative z-10 w-full sm:max-w-lg max-h-[92dvh] flex flex-col bg-white dark:bg-[#141923] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl border border-slate-200/60 dark:border-slate-800 overflow-hidden"
+            className="relative z-10 w-full sm:max-w-lg max-h-[92dvh] flex flex-col modal-surface rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden"
           >
             {/* Header with Hands-Free Auto-Save Toggle */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-slate-800 gap-2">
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-white/[0.07] gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-2xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
                   <Mic size={19} />
@@ -588,7 +588,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
                     setError('');
                   }}
                   placeholder="Ví dụ: Mua thịt 120k, rau 4 chục..."
-                  className="w-full px-4 py-3 pr-9 rounded-2xl text-sm font-semibold bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-violet-500 resize-none"
+                  className="w-full px-4 py-3 pr-9 rounded-2xl text-sm font-semibold bg-slate-50 dark:bg-[#0b1019] border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-violet-500 dark:focus:border-violet-400/70 resize-none"
                 />
                 {transcript && (
                   <button
@@ -861,7 +861,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
             </div>
 
             {/* Pinned Footer */}
-            <div className="px-5 pt-2.5 pb-safe border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-[#141923]/95">
+            <div className="px-5 pt-2.5 pb-safe border-t border-slate-100 dark:border-white/[0.07] bg-white/95 dark:bg-[#0e131e]/95 backdrop-blur-md">
               <div className={`grid gap-2.5 ${isMultiBatch ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {!isMultiBatch && (
                   <button

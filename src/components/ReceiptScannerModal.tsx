@@ -248,7 +248,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-950/60 dark:bg-black/70 backdrop-blur-md"
           />
 
           <motion.div
@@ -256,10 +256,10 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0.85 }}
             transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-            className="relative z-10 w-full sm:max-w-lg max-h-[92dvh] flex flex-col bg-white dark:bg-[#141923] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl border border-slate-200/60 dark:border-slate-800 overflow-hidden"
+            className="relative z-10 w-full sm:max-w-lg max-h-[92dvh] flex flex-col modal-surface rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100 dark:border-white/[0.07]">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <ScanLine size={19} />
@@ -308,13 +308,13 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
               {step === 'idle' && (
                 <div className="space-y-4">
                   {/* Engine mode selector */}
-                  <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80">
+                  <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 dark:bg-[#0b1019] dark:border dark:border-white/[0.06]">
                     <button
                       type="button"
                       onClick={() => setPreferAI(true)}
                       className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         preferAI
-                          ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                          ? 'bg-white dark:bg-[#1a2335] text-emerald-600 dark:text-emerald-300 shadow-xs'
                           : 'text-slate-500 dark:text-slate-400'
                       }`}
                     >
@@ -326,7 +326,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       onClick={() => setPreferAI(false)}
                       className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         !preferAI
-                          ? 'bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-xs'
+                          ? 'bg-white dark:bg-[#1a2335] text-sky-600 dark:text-sky-300 shadow-xs'
                           : 'text-slate-500 dark:text-slate-400'
                       }`}
                     >
@@ -352,9 +352,9 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                       type="button"
                       whileTap={{ scale: 0.96 }}
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex flex-col items-center justify-center gap-2.5 p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:border-emerald-400 transition-colors cursor-pointer"
+                      className="flex flex-col items-center justify-center gap-2.5 p-5 rounded-3xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] text-slate-800 dark:text-slate-100 hover:border-emerald-400 dark:hover:border-emerald-400/50 transition-colors cursor-pointer"
                     >
-                      <div className="w-12 h-12 rounded-2xl bg-sky-500/15 text-sky-500 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-2xl bg-sky-500/15 text-sky-500 dark:text-sky-400 flex items-center justify-center">
                         <ImagePlus size={24} />
                       </div>
                       <span className="text-sm font-extrabold">Chọn ảnh bill</span>
@@ -362,7 +362,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                   </div>
 
                   {/* Demo Receipts */}
-                  <div className="p-4 rounded-3xl bg-slate-50/90 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800">
+                  <div className="p-4 rounded-3xl bg-slate-50/90 dark:bg-[#0b1019] border border-slate-200/70 dark:border-white/[0.07]">
                     <div className="flex items-center gap-1.5 mb-2.5">
                       <Sparkles size={14} className="text-amber-500" />
                       <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200">
@@ -376,7 +376,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                           type="button"
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleRunDemoReceipt(demo.id)}
-                          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 hover:border-emerald-500 text-left transition-all cursor-pointer"
+                          className="p-2.5 rounded-2xl bg-white dark:bg-[#141b29] border border-slate-200/70 dark:border-white/[0.07] hover:border-emerald-500 dark:hover:border-emerald-400/50 text-left transition-all cursor-pointer"
                         >
                           <div className="flex items-center justify-between mb-1">
                             <Receipt size={14} className="text-emerald-500" />
@@ -583,8 +583,8 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                             onClick={() => setSelectedCategoryId(cat.id)}
                             className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                               active
-                                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-xs'
-                                : 'bg-slate-50 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700'
+                                ? 'bg-slate-900 dark:bg-emerald-500/20 text-white dark:text-emerald-200 border-transparent dark:border-emerald-400/45 shadow-xs'
+                                : 'bg-slate-50 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-white/[0.08]'
                             }`}
                           >
                             <CategoryIconBadge

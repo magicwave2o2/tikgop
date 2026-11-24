@@ -146,9 +146,11 @@ export const CategoryIconBadge: React.FC<{
 
   return (
     <div
-      className={`shrink-0 flex items-center justify-center transition-all duration-200 ${dims} ${className}`}
+      className={`shrink-0 flex items-center justify-center transition-all duration-200 border ${
+        active ? 'border-transparent' : 'border-black/[0.04] dark:border-white/[0.08] dark:brightness-125'
+      } ${dims} ${className}`}
       style={{
-        backgroundColor: active ? color : `${color}1A`,
+        backgroundColor: active ? color : `${color}20`,
         color: active ? '#ffffff' : color,
         boxShadow: active ? `0 8px 18px -6px ${color}99` : undefined,
       }}

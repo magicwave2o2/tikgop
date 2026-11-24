@@ -14,10 +14,10 @@ export const MemberOnboarding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-dvh w-full flex items-center justify-center p-4 sm:p-6 bg-[#f4f6fa] dark:bg-[#0b0e14] relative overflow-hidden">
+    <div className="min-h-dvh w-full flex items-center justify-center p-4 sm:p-6 bg-[#f5f7fb] dark:bg-[#070a10] relative overflow-hidden">
       {/* Soft ambient background orbs */}
-      <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-emerald-400/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-teal-400/20 blur-3xl" />
+      <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-emerald-400/20 dark:bg-emerald-500/12 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-teal-400/20 dark:bg-teal-500/10 blur-3xl" />
 
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
@@ -59,8 +59,8 @@ export const MemberOnboarding: React.FC = () => {
                 onClick={() => setSelectedId(m.id)}
                 className={`relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-3xl border-2 transition-all cursor-pointer ${
                   active
-                    ? 'bg-white dark:bg-slate-900 shadow-lg'
-                    : 'bg-slate-50/80 dark:bg-slate-800/45 border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                    ? 'bg-white dark:bg-[#172031] shadow-lg'
+                    : 'bg-slate-50/80 dark:bg-white/[0.03] border-transparent hover:border-slate-200 dark:hover:border-white/12'
                 }`}
                 style={
                   active

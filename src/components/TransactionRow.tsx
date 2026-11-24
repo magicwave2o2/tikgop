@@ -34,7 +34,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
       exit={{ opacity: 0, x: -20, transition: { duration: 0.18 } }}
       whileTap={{ scale: 0.985 }}
       onClick={() => onEdit(transaction)}
-      className="group relative flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50/90 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+      className="group relative flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50/90 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
     >
       <CategoryIconBadge icon={catIcon} color={catColor} size="md" />
 
@@ -47,20 +47,20 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
 
         <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
           <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded-md font-medium"
-            style={{ backgroundColor: `${catColor}14`, color: catColor }}
+            className="inline-flex items-center px-1.5 py-0.5 rounded-md font-medium dark:brightness-125"
+            style={{ backgroundColor: `${catColor}1A`, color: catColor }}
           >
             {category?.shortName || 'Khác'}
           </span>
 
           {member && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 font-medium">
               <DynamicIcon name={member.icon} size={11} style={{ color: member.color }} />
               {member.name}
             </span>
           )}
 
-          <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500">
+          <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-400">
             <PaymentMethodIcon method={transaction.paymentMethod} size={11} />
             <span className="tabular-nums">
               {showDate
